@@ -8,30 +8,30 @@ let monitoringInterval = null;
 
 const BLOCKED_APPS_CONFIG_PATH = path.join(__dirname, "config", "blocked-network-apps.json");
 const FALLBACK_BLOCKED_NETWORK_APPS = [
- "arc.exe",
- "brave.exe",
- "chrome.exe",
- "discord.exe",
- "element.exe",
- "firefox.exe",
- "iexplore.exe",
- "line.exe",
- "microsoftedge.exe",
- "msedge.exe",
- "opera.exe",
- "opera_gx.exe",
- "pidgin.exe",
- "qutebrowser.exe",
- "signal.exe",
- "skype.exe",
- "slack.exe",
- "teams.exe",
- "teamsclassic.exe",
- "telegram.exe",
- "vivaldi.exe",
- "wechat.exe",
- "whatsapp.exe",
- "zoom.exe"
+ "arc",
+ "brave",
+ "chrome",
+ "discord",
+ "element",
+ "firefox",
+ "internet explorer",
+ "line",
+ "microsoft edge",
+ "msedge",
+ "opera",
+ "opera gx",
+ "pidgin",
+ "qutebrowser",
+ "signal",
+ "skype",
+ "slack",
+ "teams",
+ "teamsclassic",
+ "telegram",
+ "vivaldi",
+ "wechat",
+ "whatsapp",
+ "zoom"
 ];
 
 function loadBlockedNetworkApps() {
@@ -60,45 +60,97 @@ function loadBlockedNetworkApps() {
 
 function runProcessCommand(file, args = []) {
  return new Promise(resolve => {
-  execFile(file, args, { windowsHide: true }, (error, stdout = "") => {
+  execFile(file, args, { windowsHide: true }, (error, stdout = "", stderr = "") => {
    if (error) {
-    resolve("");
+    resolve({
+     ok: false,
+     stdout: String(stdout || ""),
+     stderr: String(stderr || ""),
+     error
+    });
     return;
    }
 
-   resolve(stdout);
+   resolve({
+    ok: true,
+    stdout: String(stdout || ""),
+    stderr: String(stderr || ""),
+    error: null
+   });
   });
  });
 }
 
+function parseCsvLine(line) {
+ const values = [];
+ let currentValue = "";
+ let insideQuotes = false;
+
+ for (let index = 0; index < line.length; index += 1) {
+  const character = line[index];
+  const nextCharacter = line[index + 1];
+
+  if (character === '"') {
+   if (insideQuotes && nextCharacter === '"') {
+    currentValue += '"';
+    index += 1;
+    continue;
+   }
+
+   insideQuotes = !insideQuotes;
+   continue;
+  }
+
+  if (character === "," && !insideQuotes) {
+   values.push(currentValue);
+   currentValue = "";
+   continue;
+  }
+
+  currentValue += character;
+ }
+
+ values.push(currentValue);
+ return values.map(value => value.trim());
+}
+
+function matchesBlockedPattern(processName, blockedPatterns) {
+ const normalizedProcessName = String(processName || "")
+  .toLowerCase()
+  .replace(/\.exe$/i, "");
+
+ return blockedPatterns.some(pattern => normalizedProcessName.includes(pattern));
+}
+
 async function scanAndBlockNetworkApps() {
  const blockedNetworkApps = loadBlockedNetworkApps();
- const taskListOutput = await runProcessCommand("tasklist", ["/FO", "CSV", "/NH"]);
+ const taskListResult = await runProcessCommand("tasklist", ["/FO", "CSV", "/NH"]);
 
- if (!taskListOutput) {
+ if (!taskListResult.ok || !taskListResult.stdout.trim()) {
   return;
  }
 
  const detectedApps = new Set();
- const lines = taskListOutput
+ const lines = taskListResult.stdout
   .split(/\r?\n/)
   .map(line => line.trim())
   .filter(Boolean);
 
  for (const line of lines) {
-  const match = line.match(/^"([^"]+)"/);
+  const columns = parseCsvLine(line);
 
-  if (!match) {
+  if (columns.length < 2) {
+    continue;
+  }
+
+  const processName = columns[0];
+  const normalizedProcessName = String(processName || "").toLowerCase();
+
+  if (!matchesBlockedPattern(normalizedProcessName, blockedNetworkApps)) {
    continue;
   }
 
-  const processName = match[1].toLowerCase();
-
-  if (!blockedNetworkApps.includes(processName)) {
-   continue;
-  }
-
-  detectedApps.add(processName);
+  detectedApps.add(normalizedProcessName);
   await runProcessCommand("taskkill", ["/IM", processName, "/F"]);
  }
 
