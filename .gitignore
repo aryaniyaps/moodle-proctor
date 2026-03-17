@@ -1,0 +1,29 @@
+# Root dependencies and build output
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+
+# Project-specific generated files
+dsc/node_modules/
+dsc/.next/
+manual_proctoring/node_modules/
+manual_proctoring/backend/node_modules/
+manual_proctoring/backend/logs/
