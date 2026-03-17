@@ -118,6 +118,14 @@ button:disabled{
  border-radius:10px;
 }
 
+.exam-top-right{
+ display:flex;
+ flex-direction:column;
+ align-items:flex-end;
+ gap:6px;
+ font-weight:600;
+}
+
 .exam-meta{
  display:flex;
  gap:12px;
@@ -130,6 +138,7 @@ button:disabled{
  width:100%;
  display:flex;
  justify-content:flex-end;
+ gap:12px;
 }
 
 .video-box{
@@ -160,6 +169,14 @@ video{
 
 .secondary-btn:hover{
  background:#344054;
+}
+
+.primary-btn{
+ background:#c4320a;
+}
+
+.primary-btn:hover{
+ background:#9c2a10;
 }
 
 .completion-screen{

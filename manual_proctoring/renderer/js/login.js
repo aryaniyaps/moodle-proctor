@@ -1,31 +1,3 @@
-const API_BASE_URL = 'http://localhost:5000'
-
-function getStoredSession() {
-  const rawSession = localStorage.getItem('authSession')
-
-  if (!rawSession) {
-    return null
-  }
-
-  try {
-    return JSON.parse(rawSession)
-  } catch (error) {
-    localStorage.removeItem('authSession')
-    localStorage.removeItem('token')
-    return null
-  }
-}
-
-function storeSession(session) {
-  localStorage.setItem('authSession', JSON.stringify(session))
-  localStorage.setItem('token', session.token)
-}
-
-function clearSession() {
-  localStorage.removeItem('authSession')
-  localStorage.removeItem('token')
-}
-
 function setMessage(message, type = 'info') {
   const messageElement = document.getElementById('loginMessage')
 
@@ -49,17 +21,6 @@ function setLoadingState(isLoading) {
   loginButton.innerText = isLoading ? 'Signing In...' : 'Login'
 }
 
-function consumeRedirectMessage() {
-  const redirectMessage = sessionStorage.getItem('authRedirectMessage')
-
-  if (!redirectMessage) {
-    return
-  }
-
-  sessionStorage.removeItem('authRedirectMessage')
-  setMessage(redirectMessage, 'info')
-}
-
 async function validateExistingSession() {
   const session = getStoredSession()
 
@@ -71,11 +32,11 @@ async function validateExistingSession() {
   setMessage('Checking active session...', 'info')
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/session`, {
-      headers: {
-        Authorization: `Bearer ${session.token}`
-      }
-    })
+    const response = await fetchWithSession(`${API_BASE_URL}/api/session`)
+
+    if (!response) {
+      return
+    }
 
     if (!response.ok) {
       clearSession()
@@ -144,7 +105,12 @@ async function login() {
 }
 
 window.addEventListener('load', () => {
-  consumeRedirectMessage()
+  const redirectMessage = consumeRedirectMessage()
+
+  if (redirectMessage) {
+    setMessage(redirectMessage, 'info')
+  }
+
   validateExistingSession()
 
   document.getElementById('password').addEventListener('keydown', event => {

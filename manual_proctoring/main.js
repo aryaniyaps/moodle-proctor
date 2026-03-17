@@ -41,3 +41,20 @@ ipcMain.on("start-fullscreen",()=>{
  mainWindow.setKiosk(true);
 
 });
+
+ipcMain.on("exit-fullscreen",()=>{
+
+ if (!mainWindow) {
+  return;
+ }
+
+ mainWindow.setKiosk(false);
+ mainWindow.setFullScreen(false);
+
+});
+
+app.on("browser-window-created", (_, window) => {
+ window.on("leave-full-screen", () => {
+  window.webContents.send("fullscreen-exited");
+ });
+});

@@ -24,6 +24,7 @@ const demoUser = {
 }
 
 const sessions = new Map()
+const examAttempts = new Map()
 
 function generateToken() {
   return crypto.randomBytes(24).toString('hex')
@@ -97,6 +98,32 @@ function requireAuth(req, res, next) {
   next()
 }
 
+function getAttemptForStudent(studentId) {
+  if (!examAttempts.has(studentId)) {
+    examAttempts.set(studentId, {
+      status: 'not_started',
+      startedAt: null,
+      submittedAt: null,
+      submissionReason: null,
+      violationCount: 0,
+      violations: []
+    })
+  }
+
+  return examAttempts.get(studentId)
+}
+
+function serializeAttempt(attempt) {
+  return {
+    status: attempt.status,
+    startedAt: attempt.startedAt,
+    submittedAt: attempt.submittedAt,
+    submissionReason: attempt.submissionReason,
+    violationCount: attempt.violationCount,
+    violations: attempt.violations
+  }
+}
+
 app.post('/api/login', (req, res) => {
   const email = String(req.body.email || '').trim()
   const password = String(req.body.password || '')
@@ -138,18 +165,96 @@ app.get('/api/session', requireAuth, (req, res) => {
 app.get('/api/student', requireAuth, (req, res) => {
   return res.json({
     success: true,
-    student: req.student
+    student: req.student,
+    attempt: serializeAttempt(getAttemptForStudent(req.student.id))
   })
 })
 
 app.use('/files', requireAuth, express.static(path.join(__dirname, 'files')))
 
 app.get('/api/exam', requireAuth, (req, res) => {
+  const attempt = getAttemptForStudent(req.student.id)
+
   return res.json({
     success: true,
     timerSeconds: EXAM_DURATION_SECONDS,
     questionPaper: 'question-paper.pdf',
-    student: req.student
+    student: req.student,
+    attempt: serializeAttempt(attempt)
+  })
+})
+
+app.post('/api/exam/start', requireAuth, (req, res) => {
+  const attempt = getAttemptForStudent(req.student.id)
+
+  if (attempt.status === 'submitted') {
+    return res.status(409).json({
+      success: false,
+      message: 'This exam has already been submitted.',
+      attempt: serializeAttempt(attempt)
+    })
+  }
+
+  if (attempt.status === 'not_started') {
+    attempt.status = 'in_progress'
+    attempt.startedAt = Date.now()
+  }
+
+  return res.json({
+    success: true,
+    attempt: serializeAttempt(attempt)
+  })
+})
+
+app.post('/api/exam/violations', requireAuth, (req, res) => {
+  const attempt = getAttemptForStudent(req.student.id)
+  const type = String(req.body.type || '').trim()
+  const detail = String(req.body.detail || '').trim()
+
+  if (attempt.status !== 'in_progress') {
+    return res.status(409).json({
+      success: false,
+      message: 'Cannot log violations before the exam starts or after it is submitted.'
+    })
+  }
+
+  const violation = {
+    type: type || 'unknown',
+    detail,
+    createdAt: Date.now()
+  }
+
+  attempt.violations.push(violation)
+  attempt.violationCount += 1
+
+  return res.json({
+    success: true,
+    attempt: serializeAttempt(attempt)
+  })
+})
+
+app.post('/api/exam/submit', requireAuth, (req, res) => {
+  const attempt = getAttemptForStudent(req.student.id)
+  const reason = String(req.body.reason || 'manual_submit').trim()
+
+  if (attempt.status === 'submitted') {
+    return res.json({
+      success: true,
+      attempt: serializeAttempt(attempt)
+    })
+  }
+
+  if (attempt.status === 'not_started') {
+    attempt.startedAt = Date.now()
+  }
+
+  attempt.status = 'submitted'
+  attempt.submittedAt = Date.now()
+  attempt.submissionReason = reason
+
+  return res.json({
+    success: true,
+    attempt: serializeAttempt(attempt)
   })
 })
 

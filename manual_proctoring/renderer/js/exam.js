@@ -1,35 +1,11 @@
-const API_BASE_URL = 'http://localhost:5000'
-
 let examTimerId = null
 let questionPaperUrl = null
-
-function getStoredSession() {
-  const rawSession = localStorage.getItem('authSession')
-
-  if (!rawSession) {
-    return null
-  }
-
-  try {
-    return JSON.parse(rawSession)
-  } catch (error) {
-    clearSession()
-    return null
-  }
-}
-
-function clearSession() {
-  localStorage.removeItem('authSession')
-  localStorage.removeItem('token')
-}
-
-function redirectToLogin(message) {
-  if (message) {
-    sessionStorage.setItem('authRedirectMessage', message)
-  }
-
-  window.location = 'login.html'
-}
+let examSubmitted = false
+let examStarted = false
+let currentAttempt = null
+let isSubmitting = false
+let visibilityViolationLogged = false
+let blurViolationLogged = false
 
 function setExamStatus(message, type = 'info') {
   const status = document.getElementById('examMessage')
@@ -49,29 +25,8 @@ function formatDuration(totalSeconds) {
   return `${minutes}:${seconds}`
 }
 
-async function fetchWithSession(url, options = {}) {
-  const session = getStoredSession()
-
-  if (!session || !session.token) {
-    redirectToLogin('Please sign in before opening the exam.')
-    return null
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${session.token}`
-    }
-  })
-
-  if (response.status === 401) {
-    clearSession()
-    redirectToLogin('Your session expired. Please sign in again.')
-    return null
-  }
-
-  return response
+function updateViolationCount(count) {
+  document.getElementById('violationCount').innerText = String(count || 0)
 }
 
 function renderExamHeader(student) {
@@ -80,20 +35,91 @@ function renderExamHeader(student) {
   document.getElementById('examTitle').innerText = student.exam
 }
 
-function completeExam() {
+function updateSubmissionButton(isDisabled, label = 'Submit Exam') {
+  const submitButton = document.getElementById('submitExamButton')
+
+  if (!submitButton) {
+    return
+  }
+
+  submitButton.disabled = isDisabled
+  submitButton.innerText = label
+}
+
+function releaseExamResources() {
   if (examTimerId) {
     clearInterval(examTimerId)
     examTimerId = null
   }
 
+  if (questionPaperUrl) {
+    URL.revokeObjectURL(questionPaperUrl)
+    questionPaperUrl = null
+  }
+
+  const video = document.getElementById('video')
+
+  if (video?.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop())
+    video.srcObject = null
+  }
+
+  if (window.electronAPI?.exitFullscreen) {
+    window.electronAPI.exitFullscreen()
+  }
+}
+
+function renderCompletionScreen(reasonLabel) {
   document.body.innerHTML = `
     <div class="completion-screen">
       <div class="completion-card">
         <h1>Exam Completed</h1>
-        <p>Your exam session has ended successfully.</p>
+        <p>${reasonLabel}</p>
       </div>
     </div>
   `
+}
+
+function finishExamUI(reason) {
+  examSubmitted = true
+  releaseExamResources()
+
+  const messageByReason = {
+    manual_submit: 'Your exam has been submitted successfully.',
+    timer_expired: 'Time is up. Your exam has been submitted automatically.',
+    left_exam: 'Leaving the exam submitted your attempt automatically.'
+  }
+
+  renderCompletionScreen(messageByReason[reason] || 'Your exam session has ended successfully.')
+}
+
+async function reportViolation(type, detail) {
+  if (!examStarted || examSubmitted) {
+    return
+  }
+
+  try {
+    const response = await fetchWithSession(`${API_BASE_URL}/api/exam/violations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ type, detail })
+    })
+
+    if (!response) {
+      return
+    }
+
+    const data = await response.json()
+
+    if (response.ok && data.attempt) {
+      currentAttempt = data.attempt
+      updateViolationCount(data.attempt.violationCount)
+    }
+  } catch (error) {
+    console.error('Failed to report violation:', error)
+  }
 }
 
 function startTimer(totalSeconds) {
@@ -106,7 +132,7 @@ function startTimer(totalSeconds) {
     remainingSeconds -= 1
 
     if (remainingSeconds < 0) {
-      completeExam()
+      submitExam('timer_expired')
       return
     }
 
@@ -130,6 +156,28 @@ async function loadQuestionPaper(questionPaperName) {
   document.getElementById('questionFrame').src = `${questionPaperUrl}#toolbar=0`
 }
 
+async function startExamAttempt() {
+  const response = await fetchWithSession(`${API_BASE_URL}/api/exam/start`, {
+    method: 'POST'
+  })
+
+  if (!response) {
+    return false
+  }
+
+  const data = await response.json()
+
+  if (!response.ok || !data.success) {
+    setExamStatus(data.message || 'Could not start this exam.', 'error')
+    return false
+  }
+
+  currentAttempt = data.attempt
+  updateViolationCount(data.attempt.violationCount)
+  examStarted = true
+  return true
+}
+
 async function loadExam() {
   setExamStatus('Loading exam details...', 'info')
 
@@ -147,7 +195,19 @@ async function loadExam() {
       return
     }
 
+    if (data.attempt?.status === 'submitted') {
+      finishExamUI(data.attempt.submissionReason || 'manual_submit')
+      return
+    }
+
     renderExamHeader(data.student)
+
+    const started = await startExamAttempt()
+
+    if (!started) {
+      return
+    }
+
     startTimer(data.timerSeconds)
     await loadQuestionPaper(data.questionPaper)
     setExamStatus('Exam loaded successfully.', 'info')
@@ -157,11 +217,52 @@ async function loadExam() {
   }
 }
 
+async function submitExam(reason = 'manual_submit') {
+  if (examSubmitted || isSubmitting) {
+    return
+  }
+
+  isSubmitting = true
+  updateSubmissionButton(true, 'Submitting...')
+  setExamStatus('Submitting your exam...', 'info')
+
+  try {
+    const response = await fetchWithSession(`${API_BASE_URL}/api/exam/submit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ reason })
+    })
+
+    if (!response) {
+      return
+    }
+
+    const data = await response.json()
+
+    if (!response.ok || !data.success) {
+      setExamStatus(data.message || 'Could not submit the exam.', 'error')
+      return
+    }
+
+    currentAttempt = data.attempt
+    finishExamUI(reason)
+  } catch (error) {
+    console.error('Submit error:', error)
+    setExamStatus('Could not submit the exam. Please try again.', 'error')
+  } finally {
+    isSubmitting = false
+    updateSubmissionButton(examSubmitted, examSubmitted ? 'Submitted' : 'Submit Exam')
+  }
+}
+
 async function startCamera() {
   const video = document.getElementById('video')
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setExamStatus('Camera access is not supported in this environment.', 'error')
+    await reportViolation('camera_unavailable', 'Camera API is not supported in this environment.')
     return
   }
 
@@ -176,29 +277,91 @@ async function startCamera() {
   } catch (error) {
     console.error('Camera error:', error)
     setExamStatus('Please allow camera permission before starting the exam.', 'error')
+    await reportViolation('camera_blocked', 'Camera permission was denied or unavailable.')
   }
 }
 
-function goBackToDashboard() {
-  window.location = 'dashboard.html'
+async function goBackToDashboard() {
+  if (examSubmitted) {
+    window.location = 'dashboard.html'
+    return
+  }
+
+  const shouldLeave = window.confirm('Leaving the exam will submit it immediately. Do you want to continue?')
+
+  if (!shouldLeave) {
+    return
+  }
+
+  await reportViolation('left_exam_view', 'Candidate left the exam view before completion.')
+  await submitExam('left_exam')
 }
 
-document.addEventListener('contextmenu', event => event.preventDefault())
-document.addEventListener('copy', event => event.preventDefault())
-document.addEventListener('keydown', event => {
-  if (event.ctrlKey && event.key.toLowerCase() === 'p') {
-    event.preventDefault()
-    setExamStatus('Printing is disabled during the exam.', 'error')
+function registerExamGuards() {
+  document.addEventListener('contextmenu', event => event.preventDefault())
+  document.addEventListener('copy', event => event.preventDefault())
+  document.addEventListener('keydown', event => {
+    if (event.ctrlKey && event.key.toLowerCase() === 'p') {
+      event.preventDefault()
+      setExamStatus('Printing is disabled during the exam.', 'error')
+      reportViolation('blocked_shortcut', 'Candidate attempted to print during the exam.')
+    }
+  })
+
+  window.addEventListener('blur', () => {
+    if (!examStarted || examSubmitted || blurViolationLogged) {
+      return
+    }
+
+    blurViolationLogged = true
+    setExamStatus('Exam window focus was lost. This activity has been recorded.', 'error')
+    reportViolation('window_blur', 'Candidate moved focus away from the exam window.')
+  })
+
+  window.addEventListener('focus', () => {
+    blurViolationLogged = false
+  })
+
+  document.addEventListener('visibilitychange', () => {
+    if (!examStarted || examSubmitted) {
+      return
+    }
+
+    if (document.hidden && !visibilityViolationLogged) {
+      visibilityViolationLogged = true
+      setExamStatus('Exam visibility changed. This activity has been recorded.', 'error')
+      reportViolation('visibility_hidden', 'Candidate switched away from the exam page.')
+      return
+    }
+
+    if (!document.hidden) {
+      visibilityViolationLogged = false
+    }
+  })
+
+  if (window.electronAPI?.onFullscreenExited) {
+    window.electronAPI.onFullscreenExited(() => {
+      if (!examStarted || examSubmitted) {
+        return
+      }
+
+      setExamStatus('Fullscreen was exited. This activity has been recorded.', 'error')
+      reportViolation('fullscreen_exit', 'Candidate exited fullscreen mode during the exam.')
+    })
   }
-})
+}
 
 window.addEventListener('beforeunload', () => {
-  if (questionPaperUrl) {
-    URL.revokeObjectURL(questionPaperUrl)
+  if (!examSubmitted) {
+    reportViolation('page_unload', 'Exam page attempted to unload before submission.')
   }
+
+  releaseExamResources()
 })
 
 window.addEventListener('load', async () => {
+  registerExamGuards()
+
   if (window.electronAPI?.startFullscreen) {
     window.electronAPI.startFullscreen()
   }

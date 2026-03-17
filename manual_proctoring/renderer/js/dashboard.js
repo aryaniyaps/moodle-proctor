@@ -1,33 +1,3 @@
-const API_BASE_URL = 'http://localhost:5000'
-
-function getStoredSession() {
-  const rawSession = localStorage.getItem('authSession')
-
-  if (!rawSession) {
-    return null
-  }
-
-  try {
-    return JSON.parse(rawSession)
-  } catch (error) {
-    clearSession()
-    return null
-  }
-}
-
-function clearSession() {
-  localStorage.removeItem('authSession')
-  localStorage.removeItem('token')
-}
-
-function redirectToLogin(message) {
-  if (message) {
-    sessionStorage.setItem('authRedirectMessage', message)
-  }
-
-  window.location = 'login.html'
-}
-
 function setStatus(message, type = 'info') {
   const status = document.getElementById('dashboardMessage')
 
@@ -38,31 +8,6 @@ function setStatus(message, type = 'info') {
   status.hidden = !message
   status.className = `status-message ${type}`
   status.innerText = message || ''
-}
-
-async function fetchWithSession(url, options = {}) {
-  const session = getStoredSession()
-
-  if (!session || !session.token) {
-    redirectToLogin('Please sign in to continue.')
-    return null
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${session.token}`
-    }
-  })
-
-  if (response.status === 401) {
-    clearSession()
-    redirectToLogin('Your session expired. Please sign in again.')
-    return null
-  }
-
-  return response
 }
 
 async function loadDashboard() {
