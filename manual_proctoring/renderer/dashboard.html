@@ -22,6 +22,37 @@
   <button class="start-btn" onclick="startExam()">Start Exam</button>
 </div>
 
+<div id="violationModal" class="modal-overlay" hidden>
+  <div class="modal-card">
+    <h3>Exam Rules And Violations</h3>
+    <p class="modal-copy">
+      Read these rules carefully. Every violation will be recorded, each warning will trigger a loud beep,
+      and your exam will be permanently terminated after 15 warnings.
+    </p>
+
+    <ul class="violation-list">
+      <li>A working camera is mandatory before the exam can start.</li>
+      <li>Leaving fullscreen or kiosk mode is a warning.</li>
+      <li>Switching away from the exam window or hiding the page is a warning.</li>
+      <li>Opening blocked apps like browsers, chat apps, or meeting apps is a warning and those apps will be closed automatically.</li>
+      <li>Trying to print during the exam is a warning.</li>
+      <li>Leaving the exam before submission may submit the exam immediately.</li>
+      <li>Every warning increases your warning count and is written to the proctoring log.</li>
+      <li>At 15 warnings, the exam is auto-submitted and cannot be resumed.</li>
+    </ul>
+
+    <label class="agreement-row">
+      <input type="checkbox" id="violationAgreement">
+      <span>I have read and understood the exam rules, warning policy, and 15-warning termination limit.</span>
+    </label>
+
+    <div class="modal-actions">
+      <button class="secondary-btn" type="button" onclick="closeViolationModal()">Cancel</button>
+      <button class="start-btn" id="confirmStartButton" type="button" onclick="confirmStartExam()" disabled>I Agree And Start</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/auth.js"></script>
 <script src="js/dashboard.js"></script>
 </body>

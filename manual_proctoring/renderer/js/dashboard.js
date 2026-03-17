@@ -37,6 +37,34 @@ async function loadDashboard() {
 }
 
 function startExam() {
+  const violationModal = document.getElementById('violationModal')
+  const agreementCheckbox = document.getElementById('violationAgreement')
+  const confirmStartButton = document.getElementById('confirmStartButton')
+
+  if (!violationModal || !agreementCheckbox || !confirmStartButton) {
+    setStatus('Opening exam...', 'info')
+    window.location = 'exam.html'
+    return
+  }
+
+  agreementCheckbox.checked = false
+  confirmStartButton.disabled = true
+  violationModal.hidden = false
+  setStatus('Please review the exam rules before starting.', 'info')
+}
+
+function closeViolationModal() {
+  const violationModal = document.getElementById('violationModal')
+
+  if (!violationModal) {
+    return
+  }
+
+  violationModal.hidden = true
+  setStatus('Exam start cancelled. Review the rules when you are ready.', 'info')
+}
+
+function confirmStartExam() {
   setStatus('Opening exam...', 'info')
   window.location = 'exam.html'
 }
@@ -64,4 +92,13 @@ async function logout() {
 
 window.addEventListener('load', () => {
   loadDashboard()
+
+  const agreementCheckbox = document.getElementById('violationAgreement')
+  const confirmStartButton = document.getElementById('confirmStartButton')
+
+  if (agreementCheckbox && confirmStartButton) {
+    agreementCheckbox.addEventListener('change', () => {
+      confirmStartButton.disabled = !agreementCheckbox.checked
+    })
+  }
 })
