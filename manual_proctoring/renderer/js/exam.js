@@ -155,6 +155,11 @@ function getUserFacingWarningCopy(violation = {}) {
   }
 }
 
+function showWarningStatus(violation = {}) {
+  const warningCopy = getUserFacingWarningCopy(violation)
+  setExamStatus(`${warningCopy.title}. ${warningCopy.detail}`, 'error')
+}
+
 function renderWarningHistory(violations = []) {
   const historyList = document.getElementById('warningHistoryList')
 
@@ -352,6 +357,8 @@ async function reportViolation(type, detail) {
       if (data.attempt.status === 'submitted') {
         setExamStatus(data.message || `Exam terminated after reaching ${MAX_WARNINGS} warnings.`, 'error')
         finishExamUI(data.attempt.submissionReason || 'warning_limit_reached')
+      } else {
+        showWarningStatus({ type, detail })
       }
     }
   } catch (error) {
@@ -598,12 +605,19 @@ function startFrameCapture(video) {
           // First time seeing this violation — report it
           const mapped = PROCTORING_VIOLATION_MAP[message]
           if (mapped) {
+            showWarningStatus({
+              type: mapped.type,
+              detail: mapped.detail
+            })
             reportViolation(mapped.type, mapped.detail)
           } else {
             // Fallback for any new violation type not yet in the map
+            showWarningStatus({
+              type: 'proctoring_alert',
+              detail: message
+            })
             reportViolation('proctoring_alert', message)
           }
-          setExamStatus(`⚠ ${message}`, 'error')
           activeViolations.add(message)
         }
       }
@@ -685,7 +699,10 @@ function registerExamGuards() {
   document.addEventListener('keydown', event => {
     if (event.ctrlKey && event.key.toLowerCase() === 'p') {
       event.preventDefault()
-      setExamStatus('Printing is disabled during the exam.', 'error')
+      showWarningStatus({
+        type: 'blocked_shortcut',
+        detail: 'Printing is disabled during the exam.'
+      })
       reportViolation('blocked_shortcut', 'Candidate attempted to print during the exam.')
     }
   })
@@ -696,7 +713,10 @@ function registerExamGuards() {
     }
 
     blurViolationLogged = true
-    setExamStatus('Exam window focus was lost. This activity has been recorded.', 'error')
+    showWarningStatus({
+      type: 'window_blur',
+      detail: 'You switched focus away from the exam window.'
+    })
     reportViolation('window_blur', 'Candidate moved focus away from the exam window.')
   })
 
@@ -711,7 +731,10 @@ function registerExamGuards() {
 
     if (document.hidden && !visibilityViolationLogged) {
       visibilityViolationLogged = true
-      setExamStatus('Exam visibility changed. This activity has been recorded.', 'error')
+      showWarningStatus({
+        type: 'visibility_hidden',
+        detail: 'You switched away from the exam page.'
+      })
       reportViolation('visibility_hidden', 'Candidate switched away from the exam page.')
       return
     }
@@ -727,7 +750,10 @@ function registerExamGuards() {
         return
       }
 
-      setExamStatus('Fullscreen was exited. This activity has been recorded.', 'error')
+      showWarningStatus({
+        type: 'fullscreen_exit',
+        detail: 'You exited fullscreen mode during the exam.'
+      })
       reportViolation('fullscreen_exit', 'Candidate exited fullscreen mode during the exam.')
     })
   }
@@ -747,7 +773,10 @@ function registerExamGuards() {
       }
 
       const blockedList = uniqueProcesses.join(', ')
-      setExamStatus(`Blocked network app detected and closed: ${blockedList}. This activity has been recorded.`, 'error')
+      showWarningStatus({
+        type: 'blocked_network_app',
+        detail: `A blocked app was detected and closed automatically: ${blockedList}.`
+      })
       reportViolation('blocked_network_app', `Detected and closed blocked application(s): ${blockedList}.`)
     })
   }
