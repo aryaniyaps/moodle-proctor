@@ -132,13 +132,28 @@ function serializeAttempt(attempt) {
   }
 }
 
-function logWarning(studentProfile, violation) {
+function normalizeSeverity(value) {
+  const normalizedValue = String(value || '').trim().toLowerCase()
+
+  if (normalizedValue === 'info') {
+    return 'info'
+  }
+
+  return 'warning'
+}
+
+function logAttemptEvent(studentProfile, violation) {
   const timestamp = new Date(violation.createdAt).toISOString()
+  const severity = normalizeSeverity(violation.severity).toUpperCase()
   const logEntry =
-    `[${timestamp}] WARNING studentId=${studentProfile.id} name="${studentProfile.name}" ` +
+    `[${timestamp}] ${severity} studentId=${studentProfile.id} name="${studentProfile.name}" ` +
     `type=${violation.type} detail="${violation.detail || 'N/A'}"`
 
-  console.warn(logEntry)
+  if (severity === 'WARNING') {
+    console.warn(logEntry)
+  } else {
+    console.info(logEntry)
+  }
 
   try {
     fs.appendFileSync(WARNING_LOG_FILE, `${logEntry}\n`, 'utf8')
@@ -248,6 +263,7 @@ app.post('/api/exam/violations', requireAuth, (req, res) => {
   const attempt = getAttemptForStudent(req.student.id)
   const type = String(req.body.type || '').trim()
   const detail = String(req.body.detail || '').trim()
+  const severity = normalizeSeverity(req.body.severity)
 
   if (attempt.status !== 'in_progress') {
     return res.status(409).json({
@@ -259,12 +275,16 @@ app.post('/api/exam/violations', requireAuth, (req, res) => {
   const violation = {
     type: type || 'unknown',
     detail,
+    severity,
     createdAt: Date.now()
   }
 
   attempt.violations.push(violation)
-  attempt.violationCount += 1
-  logWarning(req.student, violation)
+  logAttemptEvent(req.student, violation)
+
+  if (severity === 'warning') {
+    attempt.violationCount += 1
+  }
 
   if (attempt.violationCount >= MAX_WARNINGS) {
     submitAttempt(attempt, 'warning_limit_reached')

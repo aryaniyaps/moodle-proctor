@@ -9,6 +9,8 @@ let blurViolationLogged = false
 let audioContext = null
 let audioUnlocked = false
 let blockedAppMonitoringEnabled = true
+let blurEventCount = 0
+let visibilityEventCount = 0
 
 const MAX_WARNINGS = 15
 const NETWORK_APP_WARNING_COOLDOWN_MS = 5000
@@ -77,6 +79,14 @@ const USER_FACING_WARNING_COPY = {
   blocked_network_app: {
     title: 'Blocked app detected',
     detail: 'A blocked app was opened and closed automatically.'
+  },
+  proctor_connection_lost: {
+    title: 'Proctoring reconnecting',
+    detail: 'The proctoring connection was interrupted and is trying to reconnect.'
+  },
+  proctor_reconnected: {
+    title: 'Proctoring connected',
+    detail: 'The proctoring connection is active again.'
   },
   page_unload: {
     title: 'Page unload detected',
@@ -184,9 +194,10 @@ function getUserFacingWarningCopy(violation = {}) {
   }
 }
 
-function showWarningStatus(violation = {}) {
+function showViolationStatus(violation = {}) {
   const warningCopy = getUserFacingWarningCopy(violation)
-  setExamStatus(`${warningCopy.title}. ${warningCopy.detail}`, 'error')
+  const severity = violation.severity === 'info' ? 'info' : 'error'
+  setExamStatus(`${warningCopy.title}. ${warningCopy.detail}`, severity)
 }
 
 function renderDevMonitoringState(settings = {}) {
@@ -266,10 +277,13 @@ function renderWarningHistory(violations = []) {
       const detail = escapeHtml(warningCopy.detail)
       const type = escapeHtml(warningCopy.title)
       const timestamp = escapeHtml(formatViolationTimestamp(violation.createdAt))
+      const severityLabel = escapeHtml(
+        violation.severity === 'info' ? 'Info' : 'Warning'
+      )
 
       return `
         <li style="padding: 12px; border: 1px solid #eaecf0; border-radius: 10px; background: #f8fafc;">
-          <div style="font-size: 13px; color: #475467; margin-bottom: 6px;">${timestamp}</div>
+          <div style="font-size: 13px; color: #475467; margin-bottom: 6px;">${timestamp} · ${severityLabel}</div>
           <div style="font-weight: 700; color: #101828; margin-bottom: 4px;">${type}</div>
           <div style="font-size: 14px; color: #344054; line-height: 1.4;">${detail}</div>
         </li>
@@ -529,7 +543,7 @@ function finishExamUI(reason) {
   )
 }
 
-async function reportViolation(type, detail) {
+async function reportViolation(type, detail, severity = 'warning') {
   if (!examStarted || examSubmitted) {
     return
   }
@@ -540,7 +554,7 @@ async function reportViolation(type, detail) {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ type, detail })
+      body: JSON.stringify({ type, detail, severity })
     })
 
     if (!response) {
@@ -553,13 +567,15 @@ async function reportViolation(type, detail) {
       currentAttempt = data.attempt
       updateViolationCount(data.attempt.violationCount)
       renderWarningHistory(data.attempt.violations)
-      playWarningBeep()
+      if (severity === 'warning') {
+        playWarningBeep()
+      }
 
       if (data.attempt.status === 'submitted') {
         setExamStatus(data.message || `Exam terminated after reaching ${MAX_WARNINGS} warnings.`, 'error')
         finishExamUI(data.attempt.submissionReason || 'warning_limit_reached')
       } else {
-        showWarningStatus({ type, detail })
+        showViolationStatus({ type, detail, severity })
       }
     }
   } catch (error) {
@@ -780,12 +796,22 @@ function startFrameCapture(video) {
   const WS_URL = (window.PROCTOR_WS_URL) || 'ws://localhost:8000/proctor'
   let ws       = null
   let intervalId = null
+  let hasConnectedOnce = false
 
   function connect() {
     ws = new WebSocket(WS_URL)
 
     ws.onopen = () => {
       console.log('[Proctor] WebSocket connected')
+      if (hasConnectedOnce) {
+        reportViolation(
+          'proctor_reconnected',
+          'The proctoring connection is active again.',
+          'info'
+        )
+      }
+
+      hasConnectedOnce = true
       intervalId = setInterval(sendFrame, 1000 / 5)  // 5 fps
     }
 
@@ -807,18 +833,20 @@ function startFrameCapture(video) {
           // First time seeing this violation — report it
           const mapped = PROCTORING_VIOLATION_MAP[message]
           if (mapped) {
-            showWarningStatus({
+            showViolationStatus({
               type: mapped.type,
-              detail: mapped.detail
+              detail: mapped.detail,
+              severity: 'warning'
             })
-            reportViolation(mapped.type, mapped.detail)
+            reportViolation(mapped.type, mapped.detail, 'warning')
           } else {
             // Fallback for any new violation type not yet in the map
-            showWarningStatus({
+            showViolationStatus({
               type: 'proctoring_alert',
-              detail: message
+              detail: message,
+              severity: 'warning'
             })
-            reportViolation('proctoring_alert', message)
+            reportViolation('proctoring_alert', message, 'warning')
           }
           activeViolations.add(message)
         }
@@ -844,6 +872,13 @@ function startFrameCapture(video) {
     ws.onclose = () => {
       console.warn('[Proctor] WebSocket closed — reconnecting in 3s')
       clearInterval(intervalId)
+      if (!examSubmitted && hasConnectedOnce) {
+        reportViolation(
+          'proctor_connection_lost',
+          'The proctoring connection was interrupted and is trying to reconnect.',
+          'info'
+        )
+      }
       // Reconnect unless the exam is already over
       if (!examSubmitted) {
         setTimeout(connect, 3000)
@@ -891,7 +926,7 @@ async function goBackToDashboard() {
     return
   }
 
-  await reportViolation('left_exam_view', 'Candidate left the exam view before completion.')
+  await reportViolation('left_exam_view', 'Candidate left the exam view before completion.', 'warning')
   await submitExam('left_exam')
 }
 
@@ -901,11 +936,12 @@ function registerExamGuards() {
   document.addEventListener('keydown', event => {
     if (event.ctrlKey && event.key.toLowerCase() === 'p') {
       event.preventDefault()
-      showWarningStatus({
+      showViolationStatus({
         type: 'blocked_shortcut',
-        detail: 'Printing is disabled during the exam.'
+        detail: 'Printing is disabled during the exam.',
+        severity: 'warning'
       })
-      reportViolation('blocked_shortcut', 'Candidate attempted to print during the exam.')
+      reportViolation('blocked_shortcut', 'Candidate attempted to print during the exam.', 'warning')
     }
   })
 
@@ -915,11 +951,22 @@ function registerExamGuards() {
     }
 
     blurViolationLogged = true
-    showWarningStatus({
+    blurEventCount += 1
+    const blurSeverity = blurEventCount === 1 ? 'info' : 'warning'
+    showViolationStatus({
       type: 'window_blur',
-      detail: 'You switched focus away from the exam window.'
+      detail: blurSeverity === 'info'
+        ? 'Focus left the exam window once. Please stay on the exam screen.'
+        : 'You switched focus away from the exam window.',
+      severity: blurSeverity
     })
-    reportViolation('window_blur', 'Candidate moved focus away from the exam window.')
+    reportViolation(
+      'window_blur',
+      blurSeverity === 'info'
+        ? 'Candidate focus left the exam window for the first time.'
+        : 'Candidate moved focus away from the exam window.',
+      blurSeverity
+    )
   })
 
   window.addEventListener('focus', () => {
@@ -933,11 +980,22 @@ function registerExamGuards() {
 
     if (document.hidden && !visibilityViolationLogged) {
       visibilityViolationLogged = true
-      showWarningStatus({
+      visibilityEventCount += 1
+      const visibilitySeverity = visibilityEventCount === 1 ? 'info' : 'warning'
+      showViolationStatus({
         type: 'visibility_hidden',
-        detail: 'You switched away from the exam page.'
+        detail: visibilitySeverity === 'info'
+          ? 'The exam page was hidden once. Please stay on the exam page.'
+          : 'You switched away from the exam page.',
+        severity: visibilitySeverity
       })
-      reportViolation('visibility_hidden', 'Candidate switched away from the exam page.')
+      reportViolation(
+        'visibility_hidden',
+        visibilitySeverity === 'info'
+          ? 'Candidate hid the exam page for the first time.'
+          : 'Candidate switched away from the exam page.',
+        visibilitySeverity
+      )
       return
     }
 
@@ -952,11 +1010,12 @@ function registerExamGuards() {
         return
       }
 
-      showWarningStatus({
+      showViolationStatus({
         type: 'fullscreen_exit',
-        detail: 'You exited fullscreen mode during the exam.'
+        detail: 'You exited fullscreen mode during the exam.',
+        severity: 'warning'
       })
-      reportViolation('fullscreen_exit', 'Candidate exited fullscreen mode during the exam.')
+      reportViolation('fullscreen_exit', 'Candidate exited fullscreen mode during the exam.', 'warning')
     })
   }
 
@@ -975,18 +1034,19 @@ function registerExamGuards() {
       }
 
       const blockedList = uniqueProcesses.join(', ')
-      showWarningStatus({
+      showViolationStatus({
         type: 'blocked_network_app',
-        detail: `A blocked app was detected and closed automatically: ${blockedList}.`
+        detail: `A blocked app was detected and closed automatically: ${blockedList}.`,
+        severity: 'warning'
       })
-      reportViolation('blocked_network_app', `Detected and closed blocked application(s): ${blockedList}.`)
+      reportViolation('blocked_network_app', `Detected and closed blocked application(s): ${blockedList}.`, 'warning')
     })
   }
 }
 
 window.addEventListener('beforeunload', () => {
   if (!examSubmitted) {
-    reportViolation('page_unload', 'Exam page attempted to unload before submission.')
+    reportViolation('page_unload', 'Exam page attempted to unload before submission.', 'warning')
   }
 
   releaseExamResources()
