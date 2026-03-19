@@ -210,11 +210,13 @@ function renderVideoFeedState() {
   const videoBox = document.getElementById('proctorVideoBox')
   const statusText = document.getElementById('videoAiStatusText')
   const statusBadge = document.getElementById('videoAiStatusBadge')
+  const statusHeadline = document.getElementById('videoAiStatusHeadline')
+  const warningCount = document.getElementById('videoWarningCount')
   const warningOverlay = document.getElementById('videoWarningOverlay')
   const warningText = document.getElementById('videoWarningText')
   const warningStack = document.getElementById('videoWarningStack')
 
-  if (!videoBox || !statusText || !statusBadge || !warningOverlay || !warningText || !warningStack) {
+  if (!videoBox || !statusText || !statusBadge || !statusHeadline || !warningCount || !warningOverlay || !warningText || !warningStack) {
     return
   }
 
@@ -253,21 +255,33 @@ function renderVideoFeedState() {
     error: 'video-status-badge-error'
   }
   const modeToBadgeLabel = {
-    idle: 'Idle',
+    idle: 'Standby',
     starting: 'Starting',
-    running: 'Live',
-    warning: 'Alert',
+    running: 'Active',
+    warning: 'Warning',
     stopped: 'Stopped',
     error: 'Error'
+  }
+  const modeToHeadline = {
+    idle: 'Waiting',
+    starting: 'Connecting',
+    running: 'Monitoring Active',
+    warning: 'Attention Needed',
+    stopped: 'Session Stopped',
+    error: 'Action Required'
   }
 
   videoBox.classList.add(modeToBoxClass[normalizedState] || 'video-box-idle')
   statusBadge.classList.add(modeToBadgeClass[normalizedState] || 'video-status-badge-idle')
   statusBadge.innerText = modeToBadgeLabel[normalizedState] || 'Idle'
+  statusHeadline.innerText = modeToHeadline[normalizedState] || 'Waiting'
+  warningCount.innerText = hasWarnings
+    ? `${liveAiWarnings.length} active`
+    : '0 active'
 
   if (hasWarnings) {
     const primaryWarning = liveAiWarnings[0]
-    statusText.innerText = `${liveAiWarnings.length} live warning${liveAiWarnings.length > 1 ? 's' : ''} on the camera feed.`
+    statusText.innerText = `${liveAiWarnings.length} live warning${liveAiWarnings.length > 1 ? 's are' : ' is'} currently visible on your camera feed.`
     warningOverlay.hidden = false
     warningText.innerText = primaryWarning
     warningStack.innerHTML = liveAiWarnings
