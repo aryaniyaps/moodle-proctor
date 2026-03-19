@@ -26,38 +26,6 @@
       </div>
     </div>
 
-    <section id="liveWarningBanner" class="live-warning-banner live-warning-banner-idle">
-      <div class="live-warning-banner-main">
-        <div class="live-warning-banner-label-row">
-          <span class="live-warning-banner-kicker">Live Monitoring</span>
-          <span id="liveWarningBannerBadge" class="live-warning-badge live-warning-badge-idle">Stable</span>
-        </div>
-        <h2 id="liveWarningBannerTitle" class="live-warning-banner-title">No active proctoring incidents</h2>
-        <p id="liveWarningBannerText" class="live-warning-banner-text">
-          AI monitoring is connected and watching the live feed. Any active warnings will appear here immediately.
-        </p>
-      </div>
-
-      <div class="live-warning-banner-side">
-        <div class="live-warning-metric">
-          <span class="live-warning-metric-label">Live items</span>
-          <span id="liveWarningBannerCount" class="live-warning-metric-value">0</span>
-        </div>
-        <div class="live-warning-metric">
-          <span class="live-warning-metric-label">Feed</span>
-          <span id="liveWarningBannerState" class="live-warning-metric-value">Standby</span>
-        </div>
-        <div class="live-warning-metric">
-          <span class="live-warning-metric-label">Updated</span>
-          <span id="liveWarningBannerUpdated" class="live-warning-metric-value">Waiting</span>
-        </div>
-      </div>
-
-      <div id="liveWarningBannerList" class="live-warning-banner-list">
-        <div class="live-warning-banner-pill live-warning-banner-pill-neutral">No live warnings</div>
-      </div>
-    </section>
-
     <p id="examMessage" class="status-message" hidden></p>
 
     <div class="exam-actions">
@@ -77,56 +45,17 @@
     </div>
 
     <div class="exam-layout">
-      <div class="exam-primary-column">
-        <section class="exam-surface exam-paper-surface">
-          <div class="section-heading-row">
-            <div>
-              <h2 class="section-title">Question Paper</h2>
-              <p class="section-copy">Read the official paper here while the live monitoring stack continues in parallel.</p>
-            </div>
+      <section class="exam-surface exam-paper-surface">
+        <div class="section-heading-row">
+          <div>
+            <h2 class="section-title">Question Paper</h2>
+            <p class="section-copy">Read the official paper here. Live monitoring stays visible in the floating panel while you work.</p>
           </div>
-          <iframe id="questionFrame" class="question-frame"></iframe>
-        </section>
-      </div>
+        </div>
+        <iframe id="questionFrame" class="question-frame"></iframe>
+      </section>
 
-      <aside class="exam-sidebar">
-        <section id="proctorVideoBox" class="exam-side-card proctor-panel video-box video-box-idle">
-          <div class="proctor-panel-header">
-            <div>
-              <h2 class="proctor-panel-title">Live Proctor Camera</h2>
-              <p class="proctor-panel-copy">
-                Keep your face centered and stay visible while the exam is in progress.
-              </p>
-            </div>
-            <span id="videoAiStatusBadge" class="video-status-badge video-status-badge-idle">Idle</span>
-          </div>
-
-          <div class="video-frame">
-            <video id="video" autoplay playsinline muted></video>
-            <div id="videoWarningOverlay" class="video-warning-overlay" hidden>
-              <div class="video-warning-label">Attention Needed</div>
-              <div id="videoWarningText" class="video-warning-text">Monitoring alert</div>
-            </div>
-          </div>
-
-          <div class="proctor-status-grid">
-            <div class="proctor-stat-card">
-              <span class="proctor-stat-label">AI Status</span>
-              <span id="videoAiStatusHeadline" class="proctor-stat-value">Waiting</span>
-            </div>
-            <div class="proctor-stat-card">
-              <span class="proctor-stat-label">Live Feed</span>
-              <span id="videoWarningCount" class="proctor-stat-value">0 active</span>
-            </div>
-          </div>
-
-          <p id="videoAiStatusText" class="proctor-status-copy">Waiting for camera...</p>
-
-          <div id="videoWarningStack" class="video-warning-stack">
-            <div class="video-warning-pill video-warning-pill-neutral">No live AI warnings</div>
-          </div>
-        </section>
-
+      <div class="exam-support-grid">
         <section class="exam-surface exam-side-card">
           <h2 class="section-title">Question Summary</h2>
           <p class="section-copy">
@@ -146,9 +75,58 @@
             <li class="empty-list-message">No warnings recorded yet.</li>
           </ul>
         </section>
-      </aside>
+      </div>
     </div>
   </div>
+
+  <section id="proctorDock" class="proctor-dock">
+    <section id="proctorVideoBox" class="exam-side-card proctor-panel video-box video-box-idle">
+      <div id="proctorDockHandle" class="proctor-panel-header proctor-panel-handle">
+        <div>
+          <div class="proctor-panel-kicker">Live Monitoring</div>
+          <h2 class="proctor-panel-title">Floating Proctor Panel</h2>
+          <p class="proctor-panel-copy">
+            Drag this panel anywhere. Keep it visible while reading the paper.
+          </p>
+        </div>
+        <div class="proctor-panel-actions">
+          <span id="videoAiStatusBadge" class="video-status-badge video-status-badge-idle">Idle</span>
+          <button id="proctorDockToggle" type="button" class="proctor-dock-toggle" aria-expanded="true">Minimize</button>
+        </div>
+      </div>
+
+      <div id="proctorDockBody" class="proctor-dock-body">
+        <div class="video-frame">
+          <video id="video" autoplay playsinline muted></video>
+          <div id="videoWarningOverlay" class="video-warning-overlay" hidden>
+            <div class="video-warning-label">Attention Needed</div>
+            <div id="videoWarningText" class="video-warning-text">Monitoring alert</div>
+          </div>
+        </div>
+
+        <div class="proctor-status-grid">
+          <div class="proctor-stat-card">
+            <span class="proctor-stat-label">AI Status</span>
+            <span id="videoAiStatusHeadline" class="proctor-stat-value">Waiting</span>
+          </div>
+          <div class="proctor-stat-card">
+            <span class="proctor-stat-label">Live Feed</span>
+            <span id="videoWarningCount" class="proctor-stat-value">Waiting</span>
+          </div>
+          <div class="proctor-stat-card">
+            <span class="proctor-stat-label">Updated</span>
+            <span id="liveWarningBannerUpdated" class="proctor-stat-value">Waiting</span>
+          </div>
+        </div>
+
+        <p id="videoAiStatusText" class="proctor-status-copy">Waiting for camera...</p>
+
+        <div id="videoWarningStack" class="video-warning-stack">
+          <div class="video-warning-pill video-warning-pill-neutral">Live feed is clear</div>
+        </div>
+      </div>
+    </section>
+  </section>
 
   <script src="js/auth.js"></script>
   <script src="js/exam.js"></script>

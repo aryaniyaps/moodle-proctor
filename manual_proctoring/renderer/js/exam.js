@@ -31,6 +31,8 @@ const EXAM_CONFIG = {
 }
 const MAX_WARNINGS = EXAM_CONFIG.maxWarnings
 const recentBlockedAppWarnings = new Map()
+const PROCTOR_DOCK_POSITION_KEY = 'manual_proctoring.proctorDock.position'
+const PROCTOR_DOCK_COLLAPSED_KEY = 'manual_proctoring.proctorDock.collapsed'
 const USER_FACING_WARNING_COPY = {
   face_absent: {
     title: 'Face not visible',
@@ -229,6 +231,133 @@ function startLiveUiRefreshLoop() {
   }, 1000)
 }
 
+function clampProctorDockPosition(x, y, dock) {
+  const panel = dock || document.getElementById('proctorDock')
+
+  if (!panel) {
+    return { x: 0, y: 0 }
+  }
+
+  const margin = 12
+  const maxX = Math.max(margin, window.innerWidth - panel.offsetWidth - margin)
+  const maxY = Math.max(margin, window.innerHeight - panel.offsetHeight - margin)
+
+  return {
+    x: Math.min(Math.max(margin, x), maxX),
+    y: Math.min(Math.max(margin, y), maxY)
+  }
+}
+
+function applyProctorDockPosition(x, y) {
+  const dock = document.getElementById('proctorDock')
+
+  if (!dock) {
+    return
+  }
+
+  const next = clampProctorDockPosition(x, y, dock)
+  dock.style.left = `${next.x}px`
+  dock.style.top = `${next.y}px`
+  dock.style.right = 'auto'
+  dock.style.bottom = 'auto'
+}
+
+function initializeProctorDock() {
+  const dock = document.getElementById('proctorDock')
+  const handle = document.getElementById('proctorDockHandle')
+  const toggle = document.getElementById('proctorDockToggle')
+
+  if (!dock || !handle || !toggle) {
+    return
+  }
+
+  const savedCollapsed = window.localStorage.getItem(PROCTOR_DOCK_COLLAPSED_KEY) === 'true'
+  dock.classList.toggle('is-collapsed', savedCollapsed)
+  toggle.innerText = savedCollapsed ? 'Expand' : 'Minimize'
+  toggle.setAttribute('aria-expanded', String(!savedCollapsed))
+
+  requestAnimationFrame(() => {
+    try {
+      const savedPosition = JSON.parse(window.localStorage.getItem(PROCTOR_DOCK_POSITION_KEY) || 'null')
+      if (savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)) {
+        applyProctorDockPosition(savedPosition.x, savedPosition.y)
+        return
+      }
+    } catch {}
+
+    const defaultX = window.innerWidth - dock.offsetWidth - 24
+    const defaultY = window.innerHeight - dock.offsetHeight - 24
+    applyProctorDockPosition(defaultX, defaultY)
+  })
+
+  toggle.addEventListener('click', () => {
+    const isCollapsed = dock.classList.toggle('is-collapsed')
+    toggle.innerText = isCollapsed ? 'Expand' : 'Minimize'
+    toggle.setAttribute('aria-expanded', String(!isCollapsed))
+    window.localStorage.setItem(PROCTOR_DOCK_COLLAPSED_KEY, String(isCollapsed))
+
+    requestAnimationFrame(() => {
+      const rect = dock.getBoundingClientRect()
+      applyProctorDockPosition(rect.left, rect.top)
+    })
+  })
+
+  let dragState = null
+
+  handle.addEventListener('pointerdown', event => {
+    if (event.target.closest('button')) {
+      return
+    }
+
+    const rect = dock.getBoundingClientRect()
+    dragState = {
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    }
+
+    dock.classList.add('is-dragging')
+    handle.setPointerCapture(event.pointerId)
+  })
+
+  handle.addEventListener('pointermove', event => {
+    if (!dragState) {
+      return
+    }
+
+    applyProctorDockPosition(
+      event.clientX - dragState.offsetX,
+      event.clientY - dragState.offsetY
+    )
+  })
+
+  const finishDrag = event => {
+    if (!dragState) {
+      return
+    }
+
+    const rect = dock.getBoundingClientRect()
+    window.localStorage.setItem(
+      PROCTOR_DOCK_POSITION_KEY,
+      JSON.stringify({ x: rect.left, y: rect.top })
+    )
+
+    dragState = null
+    dock.classList.remove('is-dragging')
+
+    if (event?.pointerId !== undefined && handle.hasPointerCapture(event.pointerId)) {
+      handle.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  handle.addEventListener('pointerup', finishDrag)
+  handle.addEventListener('pointercancel', finishDrag)
+
+  window.addEventListener('resize', () => {
+    const rect = dock.getBoundingClientRect()
+    applyProctorDockPosition(rect.left, rect.top)
+  })
+}
+
 function getUserFacingWarningCopy(violation = {}) {
   const mappedCopy = USER_FACING_WARNING_COPY[violation.type]
 
@@ -251,11 +380,12 @@ function renderVideoFeedState() {
   const statusBadge = document.getElementById('videoAiStatusBadge')
   const statusHeadline = document.getElementById('videoAiStatusHeadline')
   const warningCount = document.getElementById('videoWarningCount')
+  const updated = document.getElementById('liveWarningBannerUpdated')
   const warningOverlay = document.getElementById('videoWarningOverlay')
   const warningText = document.getElementById('videoWarningText')
   const warningStack = document.getElementById('videoWarningStack')
 
-  if (!videoBox || !statusText || !statusBadge || !statusHeadline || !warningCount || !warningOverlay || !warningText || !warningStack) {
+  if (!videoBox || !statusText || !statusBadge || !statusHeadline || !warningCount || !updated || !warningOverlay || !warningText || !warningStack) {
     return
   }
 
@@ -319,6 +449,7 @@ function renderVideoFeedState() {
   statusBadge.classList.add(modeToBadgeClass[normalizedState] || 'video-status-badge-idle')
   statusBadge.innerText = modeToBadgeLabel[normalizedState] || 'Idle'
   statusHeadline.innerText = modeToHeadline[normalizedState] || 'Waiting'
+  updated.innerText = formatLiveUpdateLabel()
   warningCount.innerText = hasWarnings || hasAdvisories
     ? `${warningCountValue + advisoryCountValue} live`
     : lastProctorPayloadAt
@@ -1739,6 +1870,7 @@ window.addEventListener('beforeunload', () => {
 
 window.addEventListener('load', async () => {
   startLiveUiRefreshLoop()
+  initializeProctorDock()
 
   if (window.electronAPI?.getAIProctoringStatus) {
     const initialAIStatus = await window.electronAPI.getAIProctoringStatus()
