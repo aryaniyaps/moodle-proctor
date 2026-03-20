@@ -35,7 +35,7 @@ Then open `http://localhost:3000` – you will be redirected to `/login`. Loggin
 
 ### Moodle Authentication Setup
 
-Create `dsc/.env.local`:
+Create `frontend/.env.local`:
 
 ```bash
 MOODLE_BASE_URL=http://localhost:8080
