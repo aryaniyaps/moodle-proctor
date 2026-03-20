@@ -22,6 +22,7 @@ let aiProctoringStatus = {
 }
 let liveAiWarnings = []
 let liveAiAdvisories = []
+let pinnedExamStatus = null
 
 const EXAM_CONFIG = {
   maxWarnings: 15,
@@ -141,16 +142,36 @@ const USER_FACING_WARNING_COPY = {
   }
 }
 
-function setExamStatus (message, type = 'info') {
+function clearPinnedExamStatus () {
+  pinnedExamStatus = null
+}
+
+function setExamStatus (message, type = 'info', options = {}) {
   const status = document.getElementById('examMessage')
 
   if (!status) {
     return
   }
 
-  status.hidden = !message
-  status.className = `status-message ${type}`
-  status.innerText = message || ''
+  const shouldPin =
+    options.pin !== undefined ? Boolean(options.pin) : type === 'error'
+
+  if (options.clearPinnedWarning) {
+    clearPinnedExamStatus()
+  }
+
+  if (shouldPin && message) {
+    pinnedExamStatus = { message, type }
+  }
+
+  const nextStatus =
+    !shouldPin && pinnedExamStatus && !options.force
+      ? pinnedExamStatus
+      : { message, type }
+
+  status.hidden = !nextStatus.message
+  status.className = `status-message ${nextStatus.type || 'info'}`
+  status.innerText = nextStatus.message || ''
 }
 
 function formatDuration (totalSeconds) {
@@ -1417,7 +1438,10 @@ async function submitExam (reason = 'manual_submit') {
 
   isSubmitting = true
   updateSubmissionButton(true, 'Submitting...')
-  setExamStatus('Submitting your exam. Please wait...', 'info')
+  setExamStatus('Submitting your exam. Please wait...', 'info', {
+    force: true,
+    clearPinnedWarning: true
+  })
 
   try {
     const response = await fetchWithSession(`${API_BASE_URL}/api/exam/submit`, {
@@ -1478,6 +1502,7 @@ async function startCamera () {
   }
 
   try {
+    clearPinnedExamStatus()
     resetLiveMonitoringState()
 
     const devices = await navigator.mediaDevices.enumerateDevices()
