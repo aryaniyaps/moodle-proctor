@@ -14,7 +14,10 @@ dotenv.config();
 function getEnvVar(key: string, defaultValue?: string): string {
   const value = process.env[key] || defaultValue;
   if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    throw new Error(
+      `Missing required environment variable: ${key}. ` +
+      'Create backend/.env from backend/.env.example or set it in your shell before starting the server.'
+    );
   }
   return value;
 }
