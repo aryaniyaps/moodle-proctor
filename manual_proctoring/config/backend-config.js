@@ -1,19 +1,18 @@
 // ============================================================================
 // Manual Proctoring Client Configuration
-// Switch between dummy backend and main backend
+// Single-backend setup for the Electron manual proctoring client
 // ============================================================================
 
 const BACKEND_CONFIG = {
-  // Use the main backend instead of the dummy Express backend
-  // Options: 'main' | 'dummy'
+  // Legacy field retained for compatibility with older notes/scripts.
   mode: 'main',
 
-  // Main backend URL (your Fastify backend)
+  // Unified main backend URL.
   main: {
     apiBaseUrl: 'http://localhost:5000'
   },
 
-  // Dummy backend URL (local Express server)
+  // Kept only to avoid breaking older imports; runtime uses the main backend.
   dummy: {
     apiBaseUrl: 'http://localhost:5000'
   }

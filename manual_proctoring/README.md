@@ -1,116 +1,38 @@
-# 📁 Project Setup
+# Manual Proctoring Electron App
 
-## 1. Create the Project Folder
+This Electron client now uses the main backend only. You do not need to run `manual_proctoring/backend/server.js`.
 
-mkdir proctoring-app
-cd proctoring-app
+## Run
 
-Inside the **proctoring-app** folder, place all the files from this repository.
+Start the main backend first:
 
----
-
-# 📂 Project Structure
-
-```
-proctoring-app
-│
-├── main.js
-├── preload.js
-├── package.json
-│
-└── renderer
-     │
-     ├── login.html
-     ├── dashboard.html
-     ├── exam.html
-     │
-     ├── js
-     │    ├── login.js
-     │    ├── dashboard.js
-     │    └── exam.js
-     │
-     └── css
-          └── style.css
-```
-
----
-
-# 📦 Install Dependencies
-
-Install the required packages:
-
-npm install electron --save-dev
-npm install axios
-
----
-
-# ▶️ Run the Electron Application
-
-npm start
-
----
-
-# 🧪 Dummy Backend for Testing
-
-Until the real backend APIs are available, a **temporary backend server** is provided for testing.
-
-## Updated Project Structure
-
-```
-proctoring-app
-│
-├── backend
-│    └── server.js
-│
-├── main.js
-├── preload.js
-├── package.json
-│
-└── renderer
-     │
-     ├── login.html
-     ├── dashboard.html
-     ├── exam.html
-     │
-     ├── js
-     │    ├── login.js
-     │    ├── dashboard.js
-     │    └── exam.js
-     │
-     └── css
-          └── style.css
-```
-
----
-
-# ⚙️ Run the Dummy Backend
-
-Open **a new terminal** and run:
-
+```bash
 cd backend
-npm init -y
-npm install express cors
-node server.js
+npm run dev
+```
 
----
+Then start the Electron app:
 
-# 🚀 Development Workflow
-
-Run the system using **two terminals**.
-
-### Terminal 1 – Backend
-
-cd backend
-node server.js
-
-### Terminal 2 – Electron App
-
+```bash
+cd manual_proctoring
+npm install
 npm start
+```
 
-### Inside application
+## Backend
 
-(Data values given in backend)
+- API base URL: `http://localhost:5000`
+- Manual compatibility routes live in:
+  - `backend/src/modules/manual-proctoring/manual-proctoring.routes.ts`
+  - `backend/src/modules/manual-proctoring/manual-proctoring.compat.ts`
 
-# Email : user
+## Demo Login
 
-# Password : password
+- Email: `user`
+- Password: `password`
+
+## Notes
+
+- The question paper is served by the main backend.
+- Manual warning logs are written under `backend/logs/manual-proctoring/`.
+- The AI proctoring service still runs separately at `http://localhost:8000`.

@@ -24,7 +24,7 @@ Next.js teacher dashboard UI for monitoring students, alerts, reports, and setti
 Electron desktop app for candidate login, exam flow, and local/manual proctoring interactions.
 
 - Stack: Electron, vanilla HTML/CSS/JS
-- Includes: `backend/` Express API used by the Electron app
+- Uses the main Fastify backend in `backend/` through a manual-proctoring compatibility layer
 - Demo login:
   - Email: `user`
   - Password: `password`
@@ -176,7 +176,6 @@ cd ..
 cd Scanning-and-Uploading/exam-system-mobile-client-main && npm install && cd ../..
 
 # Manual proctoring dependencies
-cd manual_proctoring/backend && npm install && cd ../..
 cd manual_proctoring && npm install && cd ..
 ```
 
@@ -191,7 +190,7 @@ This will create a tmux session with the following windows:
 
 1. **Docker Compose** - Infrastructure services (PostgreSQL, MariaDB, Moodle, Backend container, AI Proctoring container)
 2. **Local Development** - Backend dev server, Frontend dev server, AI Proctoring FastAPI, Mobile client
-3. **Manual Proctoring** - Manual proctoring backend and Electron app
+3. **Manual Proctoring** - Electron app
 4. **Utilities** - Docker logs, database info, service URLs
 
 ### tmuxinator Session Layout
@@ -211,7 +210,7 @@ Once all services are running:
 - **AI Proctoring Service**: http://localhost:8000
 - **Moodle LMS**: http://localhost:8080 (admin/admin123!)
 - **Mobile Scanning Client**: http://localhost:3001 (or port shown in terminal)
-- **Manual Proctoring Backend**: http://localhost:5000 (separate instance)
+- **Manual Proctoring Client**: Electron app using the same backend API at http://localhost:5000
 
 ### Stopping Services
 
@@ -252,10 +251,9 @@ docker-compose down -v
 ```
 
 Services running on Docker:
-- **PostgreSQL**: localhost:5432 (proctor_user/proctor_pass)
+- **PostgreSQL**: localhost:5433 (proctor_user/proctor_pass)
 - **MariaDB**: localhost:3306 (bn_moodle/bitnami)
 - **Moodle LMS**: http://localhost:8080 (admin/admin123!)
-- **Backend container**: http://localhost:5000
 - **AI Proctoring container**: http://localhost:8000
 
 Note: The tmuxinator configuration uses local development servers for backend and AI proctoring (with hot reload), while running only the databases and Moodle in Docker.
@@ -277,27 +275,15 @@ Notes:
 
 ### 2. Manual proctoring desktop app (`manual_proctoring`)
 
-Run this in two terminals.
-
-Terminal 1:
-
-```bash
-cd manual_proctoring/backend
-npm install
-npm start
-```
-
-Backend runs at `http://localhost:5000`.
-
-Terminal 2:
-
 ```bash
 cd manual_proctoring
 npm install
 npm start
 ```
 
-The Electron app will open and use the backend above.
+Run this after the main backend is already running from `backend/`.
+
+The Electron app uses the main backend at `http://localhost:5000`.
 
 Demo credentials:
 
@@ -341,7 +327,7 @@ Important:
 
 Some projects create runtime artifacts while running:
 
-- `manual_proctoring/backend/logs/` stores backend warning logs
+- `backend/logs/manual-proctoring/` stores manual-proctoring warning logs
 - `ai_proctoring` can generate violation logs, screenshots, and PDF reports depending on configuration
 - generated build artifacts such as `.next`, `node_modules`, and Python cache folders are not source files
 
@@ -350,7 +336,7 @@ Some projects create runtime artifacts while running:
 This repository contains related parts of a larger proctoring system, but they are not fully wired together end to end yet.
 
 - `dsc` is primarily a dashboard UI prototype
-- `manual_proctoring` is a working desktop demo backed by a local Express server
+- `manual_proctoring` is a working desktop client backed by the main Fastify backend compatibility layer
 - `ai_proctoring` is a standalone real-time detection service
 - the mobile scanning app still needs production backend and storage integration
 
@@ -359,7 +345,8 @@ This repository contains related parts of a larger proctoring system, but they a
 - `dsc/src/app/login/page.tsx`
 - `dsc/src/app/dashboard/page.tsx`
 - `manual_proctoring/main.js`
-- `manual_proctoring/backend/server.js`
+- `backend/src/modules/manual-proctoring/manual-proctoring.routes.ts`
+- `backend/src/modules/manual-proctoring/manual-proctoring.compat.ts`
 - `ai_proctoring/main.py`
 - `ai_proctoring/config.py`
 - `Scanning-and-Uploading/exam-system-mobile-client-main/src/app/page.tsx`
