@@ -8,6 +8,12 @@ import { FastifyInstance } from 'fastify';
 import { createViolationService } from './violation.service';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import type { ReportViolationRequest } from './violation.schema';
+import {
+  appendManualWarningLog,
+  buildManualStudent,
+  getLatestManualAttempt,
+  isManualProctoringRequest
+} from '../manual-proctoring/manual-proctoring.compat';
 
 // ============================================================================
 // Routes Plugin
@@ -34,6 +40,7 @@ export default fp(async (fastify: FastifyInstance) => {
         properties: {
           attemptId: { type: 'number' },
           violationType: { type: 'string' },
+          type: { type: 'string' },
           severity: { type: 'string', enum: ['info', 'warning'], default: 'warning' },
           detail: { type: 'string' },
           metadata: { type: 'object' },
@@ -43,14 +50,35 @@ export default fp(async (fastify: FastifyInstance) => {
           clientIp: { type: 'string' },
           sessionId: { type: 'string' },
           timestamp: { type: 'number' }
-        },
-        required: ['attemptId', 'violationType']
+        }
       }
     },
     handler: async (request, reply) => {
       // @ts-ignore
       const userId = request.user.id;
-      const body = request.body as ReportViolationRequest;
+      // @ts-ignore
+      const user = request.user;
+      const body = (request.body || {}) as ReportViolationRequest & { type?: string };
+
+      let manualAttempt = null as Awaited<ReturnType<typeof getLatestManualAttempt>> | null;
+      if (isManualProctoringRequest(request) && !body.attemptId) {
+        manualAttempt = await getLatestManualAttempt(fastify.pg as any, userId);
+        if (manualAttempt.attempt?.id != null) {
+          body.attemptId = manualAttempt.attempt.id;
+        }
+      }
+
+      if (isManualProctoringRequest(request) && !body.violationType) {
+        body.violationType = body.type || 'unknown';
+      }
+
+      if (!body.attemptId || !body.violationType) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Attempt ID and violation type are required',
+          message: 'No active exam attempt found'
+        });
+      }
 
       // Get signature service from fastify decoration
       // @ts-ignore
@@ -58,6 +86,28 @@ export default fp(async (fastify: FastifyInstance) => {
 
       try {
         const result = await violationService.recordViolation(body, userId, signatureService);
+
+        if (isManualProctoringRequest(request)) {
+          appendManualWarningLog(
+            buildManualStudent(user, manualAttempt?.examName || 'Exam'),
+            {
+              type: body.violationType,
+              detail: body.detail,
+              severity: body.severity,
+              createdAt: body.timestamp || Date.now()
+            }
+          );
+
+          const latestAttempt = await getLatestManualAttempt(fastify.pg as any, userId);
+
+          return reply.send({
+            success: true,
+            message: latestAttempt.attempt?.status === 'submitted'
+              ? `Exam terminated after reaching ${latestAttempt.attempt.maxWarnings} warnings.`
+              : undefined,
+            attempt: latestAttempt.attempt
+          });
+        }
 
         // If auto-submit was triggered, return special status
         if (result.data.shouldAutoSubmit) {

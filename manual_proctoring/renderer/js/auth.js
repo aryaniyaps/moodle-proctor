@@ -3,6 +3,9 @@ const APP_CONFIG = {
 }
 
 const API_BASE_URL = APP_CONFIG.apiBaseUrl
+const MANUAL_PROCTORING_HEADERS = {
+  'X-Manual-Proctoring-Client': '1'
+}
 
 function getStoredSession() {
   const rawSession = localStorage.getItem('authSession')
@@ -65,6 +68,7 @@ async function fetchWithSession(url, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers: {
+      ...MANUAL_PROCTORING_HEADERS,
       ...(options.headers || {}),
       Authorization: `Bearer ${session.token}`
     }

@@ -7,6 +7,11 @@ import fp from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
 import { createExamService } from './exam.service';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import {
+  getFirstAvailableExamId,
+  getLatestManualAttempt,
+  isManualProctoringRequest
+} from '../manual-proctoring/manual-proctoring.compat';
 
 // ============================================================================
 // Routes Plugin
@@ -61,14 +66,26 @@ export default fp(async (fastify: FastifyInstance) => {
         type: 'object',
         properties: {
           examId: { type: 'number' }
-        },
-        required: ['examId']
+        }
       }
     },
     handler: async (request, reply) => {
       // @ts-ignore
       const userId = request.user.id;
-      const { examId } = request.body as { examId: number };
+      const body = (request.body || {}) as { examId?: number };
+      let examId = body.examId;
+
+      if (isManualProctoringRequest(request) && !examId) {
+        examId = await getFirstAvailableExamId(fastify.pg as any) ?? undefined;
+      }
+
+      if (!examId) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Exam ID is required',
+          message: 'No exam available'
+        });
+      }
 
       // Get IP and user agent
       // @ts-ignore
@@ -78,6 +95,16 @@ export default fp(async (fastify: FastifyInstance) => {
 
       try {
         const result = await examService.startExam(userId, examId, ipAddress, userAgent);
+
+        if (isManualProctoringRequest(request)) {
+          const { attempt } = await getLatestManualAttempt(fastify.pg as any, userId);
+
+          return reply.code(201).send({
+            success: true,
+            attempt
+          });
+        }
+
         return reply.code(201).send(result);
       } catch (error) {
         const message = (error as Error).message;
@@ -152,23 +179,39 @@ export default fp(async (fastify: FastifyInstance) => {
         properties: {
           attemptId: { type: 'number' },
           answers: { type: 'object' },
+          reason: { type: 'string' },
           submissionReason: {
             type: 'string',
             enum: ['manual_submit', 'warning_limit_reached', 'time_expired'],
             default: 'manual_submit'
           }
-        },
-        required: ['attemptId', 'answers']
+        }
       }
     },
     handler: async (request, reply) => {
       // @ts-ignore
       const userId = request.user.id;
-      const { attemptId, answers, submissionReason } = request.body as {
-        attemptId: number;
-        answers: Record<string, unknown>;
+      const body = (request.body || {}) as {
+        attemptId?: number;
+        answers?: Record<string, unknown>;
+        reason?: string;
         submissionReason?: string;
       };
+      const { attemptId, answers, submissionReason } = body;
+
+      let finalAttemptId = attemptId;
+      if (isManualProctoringRequest(request) && !finalAttemptId) {
+        const latest = await getLatestManualAttempt(fastify.pg as any, userId);
+        finalAttemptId = (latest.attempt as any)?.id;
+      }
+
+      if (!finalAttemptId) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Exam attempt not found',
+          message: 'No active exam attempt found'
+        });
+      }
 
       // Get IP address
       // @ts-ignore
@@ -177,11 +220,21 @@ export default fp(async (fastify: FastifyInstance) => {
       try {
         const result = await examService.submitExam(
           userId,
-          attemptId,
-          answers,
-          submissionReason || 'manual_submit',
+          finalAttemptId,
+          answers || {},
+          submissionReason || body.reason || 'manual_submit',
           ipAddress
         );
+
+        if (isManualProctoringRequest(request)) {
+          const { attempt } = await getLatestManualAttempt(fastify.pg as any, userId);
+
+          return reply.send({
+            success: true,
+            attempt
+          });
+        }
+
         return reply.send(result);
       } catch (error) {
         const message = (error as Error).message;

@@ -4,9 +4,16 @@
 // ============================================================================
 
 import fp from 'fastify-plugin';
+import fs from 'fs';
 import { FastifyInstance } from 'fastify';
 import { createStudentService } from './student.service';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import {
+  buildManualStudent,
+  getLatestManualAttempt,
+  getManualQuestionPaperPath,
+  isManualProctoringRequest
+} from '../manual-proctoring/manual-proctoring.compat';
 
 // ============================================================================
 // Routes Plugin
@@ -26,6 +33,18 @@ export default fp(async (fastify: FastifyInstance) => {
       const userId = request.user.id;
 
       try {
+        if (isManualProctoringRequest(request)) {
+          // @ts-ignore
+          const user = request.user;
+          const { attempt, examName } = await getLatestManualAttempt(fastify.pg as any, userId);
+
+          return reply.send({
+            success: true,
+            student: buildManualStudent(user, examName),
+            attempt
+          });
+        }
+
         const result = await studentService.getStudentProfile(userId);
         return reply.send(result);
       } catch (error) {
@@ -80,6 +99,22 @@ export default fp(async (fastify: FastifyInstance) => {
   fastify.get('/files/:filename', {
     handler: async (request, reply) => {
       const { filename } = request.params as { filename: string };
+
+      if (isManualProctoringRequest(request)) {
+        await authMiddleware(request, reply);
+
+        const filePath = getManualQuestionPaperPath(filename);
+
+        if (!fs.existsSync(filePath)) {
+          return reply.code(404).send({
+            success: false,
+            error: 'File not found'
+          });
+        }
+
+        reply.header('Content-Type', 'application/pdf');
+        return reply.send(fs.createReadStream(filePath));
+      }
 
       // Security: Prevent path traversal
       const safeFilename = filename.replace(/..\//g, '').replace(/\\/g, '');
