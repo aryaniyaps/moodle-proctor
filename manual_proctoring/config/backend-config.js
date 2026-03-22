@@ -10,7 +10,7 @@ const BACKEND_CONFIG = {
 
   // Main backend URL (your Fastify backend)
   main: {
-    apiBaseUrl: 'http://localhost:3000'
+    apiBaseUrl: 'http://localhost:5000'
   },
 
   // Dummy backend URL (local Express server)

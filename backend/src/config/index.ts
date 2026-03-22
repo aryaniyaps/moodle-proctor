@@ -98,7 +98,7 @@ export const config = {
 
   // CORS
   cors: {
-    origin: getEnvVar('CORS_ORIGIN', 'http://localhost:3000'),
+    origin: getEnvVar('CORS_ORIGIN', 'http://localhost:3000,http://localhost:5000'),
     credentials: getBoolEnvVar('CORS_CREDENTIALS', true),
   },
 

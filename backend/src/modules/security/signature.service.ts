@@ -161,7 +161,11 @@ export class SignatureService {
 let signatureServiceInstance: SignatureService | null = null;
 
 export function createSignatureService(): SignatureService {
-  const secret = process.env.FRAME_SIGNATURE_SECRET;
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const secret = process.env.FRAME_SIGNATURE_SECRET ||
+    (nodeEnv === 'production'
+      ? undefined
+      : 'dev-frame-signature-secret-change-this');
   const maxAge = parseInt(process.env.FRAME_SIGNATURE_MAX_AGE || '5000', 10);
 
   if (!secret) {

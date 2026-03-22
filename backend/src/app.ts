@@ -40,8 +40,21 @@ export async function createApp() {
   // ==========================================================================
 
   // CORS
+  const allowedOrigins = config.cors.origin
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
   await app.register(cors, {
-    origin: config.cors.origin,
+    origin: (origin, callback) => {
+      // Allow Electron/file-based clients and non-browser tools without Origin headers.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, allowedOrigins.includes(origin));
+    },
     credentials: config.cors.credentials,
   });
 
