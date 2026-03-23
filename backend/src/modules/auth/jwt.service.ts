@@ -6,7 +6,7 @@
 import crypto from 'crypto';
 import config from '../../config';
 import logger from '../../config/logger';
-import type { JwtPayload, User, UserRole } from '../../types';
+import type { JwtPayload, User } from '../../types';
 import { UnauthorizedError } from '../../utils/errors';
 
 // ============================================================================
@@ -16,12 +16,10 @@ import { UnauthorizedError } from '../../utils/errors';
 class JWTService {
   private secret: string;
   private expiresIn: string;
-  private refreshExpiresIn: string;
 
   constructor() {
     this.secret = config.jwt.secret;
     this.expiresIn = config.jwt.expiresIn;
-    this.refreshExpiresIn = config.jwt.refreshExpiresIn;
   }
 
   /**

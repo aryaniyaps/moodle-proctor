@@ -7,7 +7,7 @@ import { FastifyInstance } from 'fastify';
 import logger from '../../config/logger';
 import moodleService from './moodle.service';
 import jwtService from './jwt.service';
-import type { User, JwtPayload } from '../../types';
+import type { User } from '../../types';
 import { UserRole } from '../../types';
 import { UnauthorizedError, BadRequestError, MoodleError } from '../../utils/errors';
 
@@ -120,7 +120,7 @@ class AuthService {
   /**
    * Refresh JWT token
    */
-  async refreshToken(fastify: FastifyInstance, token: string): Promise<string> {
+  async refreshToken(_fastify: FastifyInstance, token: string): Promise<string> {
     try {
       // Validate old token
       const oldPayload = jwtService.validateToken(token);
@@ -149,7 +149,7 @@ class AuthService {
    * Logout user (invalidate token if needed)
    * For JWT, logout is handled client-side by removing the token
    */
-  async logout(fastify: FastifyInstance, userId: number): Promise<void> {
+  async logout(_fastify: FastifyInstance, userId: number): Promise<void> {
     // In a stateless JWT system, logout is typically handled client-side
     // If you need server-side logout, consider:
     // 1. Token blacklist in Redis

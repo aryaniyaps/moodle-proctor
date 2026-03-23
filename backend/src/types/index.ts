@@ -220,12 +220,9 @@ export interface AIMetadata {
 // Fastify Augmentations
 // ============================================================================
 
-import { FastifyRequest } from 'fastify';
-import { User as FastifyUser } from '@fastify/jwt';
-
 declare module 'fastify' {
-  interface Request {
-    user?: User;
+  interface FastifyRequest {
+    user: User;
   }
 }
 

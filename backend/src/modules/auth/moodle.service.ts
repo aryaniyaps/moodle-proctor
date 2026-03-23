@@ -4,7 +4,6 @@
 // ============================================================================
 
 import axios from 'axios';
-import crypto from 'crypto';
 import config from '../../config';
 import logger from '../../config/logger';
 import { MoodleError } from '../../utils/errors';
@@ -175,7 +174,7 @@ class MoodleService {
    * Sync user from Moodle to database
    * Returns user role (student or teacher)
    */
-  async syncUser(moodleToken: string, siteInfo: MoodleSiteInfo): Promise<{
+  async syncUser(_moodleToken: string, siteInfo: MoodleSiteInfo): Promise<{
     userId: number;
     role: 'student' | 'teacher';
   }> {

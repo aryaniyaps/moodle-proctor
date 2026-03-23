@@ -12,7 +12,7 @@ import logger from '../config/logger';
  * PostgreSQL plugin for Fastify
  * Provides database connection with pooling
  */
-export default fp(async (fastify, options) => {
+export default fp(async (fastify, _options) => {
   try {
     await fastify.register(postgres, {
       connectionString: config.database.url,

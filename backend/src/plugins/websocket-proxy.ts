@@ -222,7 +222,7 @@ export default fp<WebSocketProxyOptions>(async (fastify: FastifyInstance, option
       }
 
       // Register client connection
-      const connection = handler.registerClientConnection(
+      handler.registerClientConnection(
         ws as any,
         finalSessionId,
         {

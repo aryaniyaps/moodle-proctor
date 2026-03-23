@@ -85,12 +85,12 @@ export async function createApp() {
   // ==========================================================================
 
   // Request logging
-  app.addHook('preHandler', async (request, reply) => {
+  app.addHook('preHandler', async (request, _reply) => {
     logger.debug(`${request.method} ${request.url}`);
   });
 
   // Error handler
-  app.addHook('onError', async (request, reply, error) => {
+  app.addHook('onError', async (request, _reply, error) => {
     logger.error(`Request error: ${request.method} ${request.url}`, error);
   });
 
@@ -98,7 +98,7 @@ export async function createApp() {
   // Health Check
   // ==========================================================================
 
-  app.get('/health', async (request, reply) => {
+  app.get('/health', async (_request, reply) => {
     try {
       // Check database connection
       const client = await app.pg.connect();
@@ -156,7 +156,7 @@ export async function createApp() {
   // Global Error Handler
   // ==========================================================================
 
-  app.setErrorHandler(async (error, request, reply) => {
+  app.setErrorHandler(async (error, _request, reply) => {
     logger.error('Global error handler:', error);
 
     const statusCode = (error as any).statusCode || 500;
@@ -173,16 +173,9 @@ export async function createApp() {
   // Graceful Shutdown
   // ==========================================================================
 
-  const close = app.close.bind(app);
-
-  app.close = async (closeListener?: () => void) => {
+  app.addHook('onClose', async () => {
     logger.info('Closing application...');
-    await close();
-    if (closeListener) {
-      closeListener();
-    }
-    return undefined as any;
-  };
+  });
 
   return app;
 }
