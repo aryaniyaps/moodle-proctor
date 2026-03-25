@@ -1,21 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const nextPath = searchParams.get("next") || "/dashboard";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/backend-login", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ username: identifier, password }),
@@ -24,7 +28,7 @@ export default function LoginPage() {
       if (!res.ok) {
         throw new Error(typeof data?.error === "string" ? data.error : "Login failed");
       }
-      router.push("/dashboard");
+      router.push(nextPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

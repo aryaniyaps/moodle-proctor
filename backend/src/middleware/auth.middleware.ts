@@ -57,14 +57,18 @@ export async function authMiddleware(
       return;
     }
 
-    // Extract token from Authorization header
     const authHeader = request.headers.authorization;
+    const cookieToken = (request as any).cookies?.auth_token;
+    const token =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : typeof cookieToken === 'string' && cookieToken.trim()
+        ? cookieToken.trim()
+        : null;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       throw new UnauthorizedError('Missing or invalid authorization header');
     }
-
-    const token = authHeader.substring(7);
 
     // Validate token
     const payload = jwtService.validateToken(token);
@@ -96,9 +100,15 @@ export async function optionalAuthMiddleware(
 ): Promise<void> {
   try {
     const authHeader = request.headers.authorization;
+    const cookieToken = (request as any).cookies?.auth_token;
+    const token =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : typeof cookieToken === 'string' && cookieToken.trim()
+        ? cookieToken.trim()
+        : null;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
+    if (token) {
 
       try {
         const payload = jwtService.validateToken(token);
