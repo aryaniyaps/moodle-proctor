@@ -73,6 +73,7 @@ export function useWebRTC(config: WebRTCConfig) {
   const consumersRef = useRef<Map<string, Consumer>>(new Map());
   const consumerMetaRef = useRef<Map<string, AvailableConsumer>>(new Map());
   const connectedRef = useRef(false);
+  const joinStateRef = useRef<'idle' | 'joining' | 'joined'>('idle');
 
   const clearConsumerPoll = useCallback(() => {
     if (consumerPollRef.current) {
@@ -86,6 +87,7 @@ export function useWebRTC(config: WebRTCConfig) {
     setPeers(new Map());
     setStreams(new Map());
     consumerMetaRef.current.clear();
+    joinStateRef.current = 'idle';
   }, []);
 
   const fetchJson = useCallback(
@@ -260,7 +262,12 @@ export function useWebRTC(config: WebRTCConfig) {
   }, [config.backendUrl, config.peerId, config.roomId, fetchJson, removeConsumerState, syncPeers]);
 
   const joinRoom = useCallback(async () => {
+    if (joinStateRef.current === 'joining' || joinStateRef.current === 'joined') {
+      return;
+    }
+
     try {
+      joinStateRef.current = 'joining';
       setError(null);
       await ensureRoom();
 
@@ -325,7 +332,9 @@ export function useWebRTC(config: WebRTCConfig) {
           console.error('Failed to refresh WebRTC consumers:', err);
         });
       }, CONSUMER_POLL_INTERVAL_MS);
+      joinStateRef.current = 'joined';
     } catch (err) {
+      joinStateRef.current = 'idle';
       const message = `Failed to join room: ${err}`;
       setError(message);
       console.error(message);
@@ -343,6 +352,11 @@ export function useWebRTC(config: WebRTCConfig) {
 
   const leaveRoom = useCallback(async () => {
     try {
+      if (joinStateRef.current === 'idle') {
+        resetState();
+        return;
+      }
+
       clearConsumerPoll();
 
       for (const consumer of consumersRef.current.values()) {
@@ -366,6 +380,7 @@ export function useWebRTC(config: WebRTCConfig) {
       connectedRef.current = false;
       resetState();
     } catch (err) {
+      joinStateRef.current = 'idle';
       console.error('Error leaving room:', err);
     }
   }, [clearConsumerPoll, config.backendUrl, config.peerId, config.roomId, resetState]);

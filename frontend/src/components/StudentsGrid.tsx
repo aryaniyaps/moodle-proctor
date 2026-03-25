@@ -5,9 +5,10 @@ import { useWebRTC } from '@/hooks/useWebRTC';
 import { VideoStream } from './VideoStream';
 import { FiLoader } from 'react-icons/fi';
 
-export const StudentsGrid = () => {
+export const  StudentsGrid = () => {
   const roomId = 'exam-monitoring-room';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const hasAutoJoined = useRef(false);
 
   // For demo, use teacher as viewer with peerId
   const teacherPeerId = useRef(`teacher-${Date.now()}`);
@@ -32,13 +33,13 @@ export const StudentsGrid = () => {
   const videoStreams = remoteStreams.filter(streamInfo => streamInfo.kind === 'video');
 
   useEffect(() => {
-    // Join room on mount
-    joinRoom().catch(console.error);
+    if (hasAutoJoined.current) {
+      return;
+    }
 
-    return () => {
-      leaveRoom().catch(console.error);
-    };
-  }, [joinRoom, leaveRoom]);
+    hasAutoJoined.current = true;
+    joinRoom().catch(console.error);
+  }, [joinRoom]);
 
   if (error) {
     return (
