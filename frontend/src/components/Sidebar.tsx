@@ -37,7 +37,7 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="dashboard-panel fixed bottom-4 left-4 top-4 z-40 hidden w-72 rounded-[28px] lg:flex lg:flex-col">
+    <aside className="dashboard-panel fixed bottom-4 left-4 top-4 z-40 hidden w-72 overflow-y-auto rounded-[28px] scroll-thin lg:flex lg:flex-col">
       <div className="flex items-center gap-4 border-b border-slate-200/70 px-6 pb-6 pt-7">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-lg shadow-slate-900/15">
           PV
