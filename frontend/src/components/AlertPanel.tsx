@@ -90,7 +90,7 @@ export const AlertPanel = () => {
                   {student && (
                     <p className="mt-2 text-sm text-slate-500">
                       <span className="font-semibold text-slate-700">{student.name}</span>
-                      {" · "}
+                      {" / "}
                       {student.id}
                     </p>
                   )}
