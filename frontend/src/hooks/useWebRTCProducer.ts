@@ -45,13 +45,16 @@ export function useWebRTCProducer(config: WebRTCProducerConfig) {
 
   const fetchJson = useCallback(
     async <T,>(input: string, init?: RequestInit): Promise<T> => {
+      const headers = new Headers(init?.headers);
+
+      if (init?.body && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
+
       const response = await fetch(input, {
         credentials: 'include',
         ...init,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(init?.headers || {}),
-        },
+        headers,
       });
 
       if (!response.ok) {

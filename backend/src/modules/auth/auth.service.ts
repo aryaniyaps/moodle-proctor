@@ -59,7 +59,7 @@ class AuthService {
         id: userId,
         moodleUserId: siteInfo.userid,
         username: siteInfo.username,
-        email: siteInfo.email,
+        email: moodleService.getResolvedEmail(siteInfo),
         firstName: siteInfo.firstname,
         lastName: siteInfo.lastname,
         role: role === 'teacher' ? UserRole.TEACHER : UserRole.STUDENT,

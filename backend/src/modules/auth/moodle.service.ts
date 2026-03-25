@@ -28,7 +28,7 @@ interface MoodleSiteInfo {
   username: string;
   firstname?: string;
   lastname?: string;
-  email: string;
+  email?: string;
   lang?: string;
   userpictureurl?: string;
   siteurl: string;
@@ -206,12 +206,26 @@ class MoodleService {
     return {
       id: siteInfo.userid,
       username: siteInfo.username,
-      email: siteInfo.email,
+      email: this.getResolvedEmail(siteInfo),
       firstname: siteInfo.firstname,
       lastname: siteInfo.lastname,
       fullname: `${siteInfo.firstname || ''} ${siteInfo.lastname || ''}`.trim(),
       userpictureurl: siteInfo.userpictureurl,
     };
+  }
+
+  getResolvedEmail(siteInfo: Pick<MoodleSiteInfo, 'email' | 'userid' | 'username'>): string {
+    const normalizedEmail = siteInfo.email?.trim();
+
+    if (normalizedEmail) {
+      return normalizedEmail.toLowerCase();
+    }
+
+    const safeUsername =
+      siteInfo.username?.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '-') ||
+      `moodle-user-${siteInfo.userid}`;
+
+    return `${safeUsername}-${siteInfo.userid}@placeholder.local`;
   }
 }
 
