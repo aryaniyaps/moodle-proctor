@@ -29,6 +29,7 @@ export const StudentsGrid = () => {
   });
 
   const remoteStreams = getRemoteStreams();
+  const videoStreams = remoteStreams.filter(streamInfo => streamInfo.kind === 'video');
 
   useEffect(() => {
     // Join room on mount
@@ -78,8 +79,8 @@ export const StudentsGrid = () => {
           </div>
 
           {/* Connection Stats */}
-          <span className="text-xs text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-            {remoteStreams.length} active streams
+            <span className="text-xs text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+            {videoStreams.length} active video streams
           </span>
         </div>
       </div>
@@ -102,9 +103,9 @@ export const StudentsGrid = () => {
       )}
 
       {/* Video Grid - Supports up to 15 students in a 3x5 layout */}
-      {remoteStreams.length > 0 && (
+      {videoStreams.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 auto-rows-[200px]">
-          {remoteStreams.map((streamInfo) => {
+          {videoStreams.map((streamInfo) => {
             const peer = peers.find((p) => p.peerId === streamInfo.peerId);
 
             return (
@@ -125,8 +126,8 @@ export const StudentsGrid = () => {
           })}
 
           {/* Placeholder Cards for Remaining Slots (up to 15) */}
-          {remoteStreams.length < 15 &&
-            Array.from({ length: 15 - remoteStreams.length }).map(
+          {videoStreams.length < 15 &&
+            Array.from({ length: 15 - videoStreams.length }).map(
               (_, idx) => (
                 <div
                   key={`placeholder-${idx}`}
@@ -134,7 +135,7 @@ export const StudentsGrid = () => {
                 >
                   <div className="text-center">
                     <p>Empty Slot</p>
-                    <p className="text-xs">{remoteStreams.length + idx + 1}</p>
+                    <p className="text-xs">{videoStreams.length + idx + 1}</p>
                   </div>
                 </div>
               )
