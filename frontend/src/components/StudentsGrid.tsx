@@ -5,10 +5,16 @@ import { useWebRTC } from '@/hooks/useWebRTC';
 import { VideoStream } from './VideoStream';
 import { FiLoader } from 'react-icons/fi';
 
-export const  StudentsGrid = () => {
-  const roomId = 'exam-monitoring-room';
+interface Props {
+  roomId?: number;
+}
+
+export const StudentsGrid = ({ roomId }: Props) => {
+  // Convert numeric roomId to string room identifier
+  const roomIdentifier = roomId ? `room-${roomId}` : 'exam-monitoring-room';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   const hasAutoJoined = useRef(false);
+  const previousRoomId = useRef<number | undefined>(undefined);
 
   // For demo, use teacher as viewer with peerId
   const teacherPeerId = useRef(`teacher-${Date.now()}`);
@@ -22,7 +28,7 @@ export const  StudentsGrid = () => {
     leaveRoom,
     getRemoteStreams,
   } = useWebRTC({
-    roomId,
+    roomId: roomIdentifier,
     peerId: teacherPeerId.current,
     userId: 0,
     studentName: 'Teacher',
@@ -32,14 +38,42 @@ export const  StudentsGrid = () => {
   const remoteStreams = getRemoteStreams();
   const videoStreams = remoteStreams.filter(streamInfo => streamInfo.kind === 'video');
 
+  // Handle room switching
   useEffect(() => {
-    if (hasAutoJoined.current) {
+    // Skip first render
+    if (previousRoomId.current === undefined && roomId === undefined) {
       return;
     }
 
-    hasAutoJoined.current = true;
-    joinRoom().catch(console.error);
-  }, [joinRoom]);
+    // Check if room changed
+    if (previousRoomId.current !== roomId) {
+      // Leave old room if connected
+      if (previousRoomId.current !== undefined && isConnected) {
+        console.log(`[StudentsGrid] Leaving room ${previousRoomId.current}`);
+        leaveRoom();
+        hasAutoJoined.current = false;
+      }
+
+      // Join new room
+      if (roomId !== undefined && !hasAutoJoined.current) {
+        console.log(`[StudentsGrid] Joining room ${roomId}`);
+        setTimeout(() => {
+          joinRoom().catch(console.error);
+          hasAutoJoined.current = true;
+        }, 100); // Small delay to ensure clean disconnect
+      }
+
+      previousRoomId.current = roomId;
+    }
+  }, [roomId, isConnected, joinRoom, leaveRoom]);
+
+  // Initial join on mount (if roomId provided)
+  useEffect(() => {
+    if (roomId && !hasAutoJoined.current) {
+      hasAutoJoined.current = true;
+      joinRoom().catch(console.error);
+    }
+  }, []); // Only run on mount
 
   if (error) {
     return (
@@ -58,7 +92,7 @@ export const  StudentsGrid = () => {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex flex-col">
           <h2 className="text-xl font-bold text-gray-900">
-            Live Monitoring Dashboard
+            {roomId ? `Room #${roomId}` : 'Live Monitoring Dashboard'}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
             Viewing {peers.length} students in real-time
