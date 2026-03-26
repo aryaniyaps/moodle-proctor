@@ -24,6 +24,43 @@ export default fp(async (fastify: FastifyInstance) => {
   const examService = createExamService(fastify.pg as any);
 
   // ==========================================================================
+  // GET /api/exams - List all exams for teacher
+  // ==========================================================================
+
+  fastify.get('/api/exams', {
+    onRequest: [authMiddleware],
+    handler: async (request, reply) => {
+      // @ts-ignore
+      const userId = request.user.id;
+
+      try {
+        const result = await fastify.pg.query(
+          `SELECT
+             e.id,
+             e.exam_name,
+             c.course_name
+           FROM exams e
+           JOIN courses c ON e.course_id = c.id
+           WHERE c.teacher_id = $1
+           ORDER BY e.created_at DESC`,
+          [userId]
+        );
+
+        return reply.send({
+          success: true,
+          data: result.rows
+        });
+      } catch (error) {
+        console.error('Error fetching exams:', error);
+        return reply.code(500).send({
+          success: false,
+          error: 'Failed to fetch exams'
+        });
+      }
+    }
+  });
+
+  // ==========================================================================
   // GET /api/exam/:id - Get exam details
   // ==========================================================================
 

@@ -11,6 +11,7 @@ export const StudentsGrid = () => {
   const roomId = 'exam-monitoring-room';
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   const hasAutoJoined = useRef(false);
+  const previousRoomId = useRef<number | undefined>(undefined);
 
   const teacherPeerId = useRef(`teacher-${Date.now()}`);
 
@@ -28,14 +29,42 @@ export const StudentsGrid = () => {
   const availableSlots = Math.max(MAX_VISIBLE_SLOTS - occupiedSlots, 0);
   const occupancy = `${occupiedSlots}/${MAX_VISIBLE_SLOTS}`;
 
+  // Handle room switching
   useEffect(() => {
-    if (hasAutoJoined.current) {
+    // Skip first render
+    if (previousRoomId.current === undefined && roomId === undefined) {
       return;
     }
 
-    hasAutoJoined.current = true;
-    joinRoom().catch(console.error);
-  }, [joinRoom]);
+    // Check if room changed
+    if (previousRoomId.current !== roomId) {
+      // Leave old room if connected
+      if (previousRoomId.current !== undefined && isConnected) {
+        console.log(`[StudentsGrid] Leaving room ${previousRoomId.current}`);
+        leaveRoom();
+        hasAutoJoined.current = false;
+      }
+
+      // Join new room
+      if (roomId !== undefined && !hasAutoJoined.current) {
+        console.log(`[StudentsGrid] Joining room ${roomId}`);
+        setTimeout(() => {
+          joinRoom().catch(console.error);
+          hasAutoJoined.current = true;
+        }, 100); // Small delay to ensure clean disconnect
+      }
+
+      previousRoomId.current = roomId;
+    }
+  }, [roomId, isConnected, joinRoom, leaveRoom]);
+
+  // Initial join on mount (if roomId provided)
+  useEffect(() => {
+    if (roomId && !hasAutoJoined.current) {
+      hasAutoJoined.current = true;
+      joinRoom().catch(console.error);
+    }
+  }, []); // Only run on mount
 
   if (error) {
     return (

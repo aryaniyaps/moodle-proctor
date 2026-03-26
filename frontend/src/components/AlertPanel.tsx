@@ -1,6 +1,12 @@
-import { alerts, students } from "@mock/data";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { students } from "@mock/data";
 import type { Alert } from "@app-types/index";
 import { FiAlertTriangle, FiMic, FiMonitor, FiSmartphone } from "react-icons/fi";
+
+interface Props {
+  roomId?: number; // Room ID for SSE filtering
+  apiUrl?: string; // Backend API URL
+}
 
 const alertIcon = (type: Alert["type"]) => {
   switch (type) {
