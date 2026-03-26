@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useCallback } from "react";
 import { AlertPanel } from "@components/AlertPanel";
 import { StudentsGrid } from "@components/StudentsGrid";
 import { alerts, students } from "@mock/data";
@@ -24,6 +27,23 @@ const workspaceStats = [
 ];
 
 export default function LiveMonitoringPage() {
+  const [currentRoomId, setCurrentRoomId] = useState<number | undefined>(undefined);
+  const [isRoomSelectorOpen, setIsRoomSelectorOpen] = useState(false);
+  const [isRoomCreationOpen, setIsRoomCreationOpen] = useState(false);
+
+  // Handle room switch
+  const handleRoomSelect = useCallback((roomId: number) => {
+    setCurrentRoomId(roomId);
+    // Note: Room switching logic with 2s debounce is handled inside RoomSelector
+  }, []);
+
+  // Handle room creation
+  const handleRoomCreated = useCallback((room: { roomId: number; roomCode: string; inviteLink: string }) => {
+    setCurrentRoomId(room.roomId);
+    // Automatically switch to the newly created room
+    console.log('[Monitoring] Room created:', room);
+  }, []);
+
   return (
     <section className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">

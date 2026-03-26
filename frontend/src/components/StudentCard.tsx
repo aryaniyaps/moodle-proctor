@@ -1,8 +1,14 @@
 import type { Student } from "@app-types/index";
 import { StatusBadge } from "./StatusBadge";
+import { FiAlertTriangle, FiCamera, FiSlash } from "react-icons/fi";
+import { useState } from "react";
 
 interface Props {
   student: Student;
+  violationCount?: number; // Number of violations in last 5 minutes
+  onWarn?: (studentId: string) => void;
+  onScreenshot?: (studentId: string) => void;
+  onKick?: (studentId: string) => void;
 }
 
 const connectionTone: Record<Student["connection"], string> = {
@@ -61,6 +67,34 @@ export const StudentCard = ({ student }: Props) => {
               {student.connection}
             </span>
           </div>
+        </div>
+
+        {/* Quick action buttons */}
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+          <button
+            onClick={handleWarn}
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors"
+            title="Send warning"
+          >
+            <FiAlertTriangle className="h-3 w-3" />
+            Warn
+          </button>
+          <button
+            onClick={handleScreenshot}
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100 transition-colors"
+            title="Take screenshot"
+          >
+            <FiCamera className="h-3 w-3" />
+            Screenshot
+          </button>
+          <button
+            onClick={() => setShowKickConfirm(true)}
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-red-50 text-red-700 text-xs font-medium hover:bg-red-100 transition-colors"
+            title="Remove student"
+          >
+            <FiSlash className="h-3 w-3" />
+            Kick
+          </button>
         </div>
       </div>
     </article>
