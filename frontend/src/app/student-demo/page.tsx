@@ -147,187 +147,201 @@ export default function StudentDesktopLaunchPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.12),_transparent_40%),linear-gradient(180deg,_#f8fafc_0%,_#e2e8f0_100%)] px-4 py-10 sm:px-6">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-        <section className="overflow-hidden rounded-[32px] border border-slate-200/70 bg-white/90 shadow-[0_28px_90px_-50px_rgba(15,23,42,0.6)] backdrop-blur">
-          <div className="grid gap-0 lg:grid-cols-[1.05fr,0.95fr]">
-            <div className="border-b border-slate-200/80 p-6 sm:p-8 lg:border-b-0 lg:border-r">
-              <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-                Desktop Exam Launch
+    <main className="min-h-screen px-4 py-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <section className="surface-panel overflow-hidden rounded-[36px]">
+          <div className="grid gap-0 lg:grid-cols-[1.02fr,0.98fr]">
+            <div className="bg-slate-950 p-6 text-white sm:p-8 lg:p-10">
+              <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
+                Desktop exam launch
               </span>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
                 Continue in the proctoring app
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                The exam runs in the Electron desktop app, not in this browser tab. Enter your
-                room details, then continue so the desktop client can join the room and open the
-                exam session automatically.
+              <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                The exam does not run in this browser tab. Enter your room details here, then the
+                desktop client will open and take over the monitored exam flow.
               </p>
 
-              <div className="mt-6 grid gap-3 text-sm text-slate-600">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  1. Enter the room code, your name, and your institutional email.
+              <div className="mt-8 grid gap-3">
+                <div className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                    Step 1
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-100">
+                    Enter the room code, your full name, and your institutional email.
+                  </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  2. Click <span className="font-semibold text-slate-900">Proceed in Desktop App</span>.
+                <div className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                    Step 2
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-100">
+                    Click <span className="font-semibold">Proceed in desktop app</span> so the handoff link can open the client.
+                  </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  3. The Electron app opens, joins your room, and starts the exam flow there.
+                <div className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                    Step 3
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-100">
+                    If the app does not open, use the fallback controls on the right to try again or copy the room code.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 sm:p-8">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <label className="block space-y-2">
-                  <span className="text-sm font-semibold text-slate-900">Room code</span>
-                  <input
-                    value={form.roomCode}
-                    onChange={event =>
-                      setForm(current => ({
-                        ...current,
-                        roomCode: normalizeRoomCode(event.target.value),
-                      }))
-                    }
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm uppercase tracking-[0.18em] text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
-                    maxLength={8}
-                    placeholder="AB12CD34"
-                  />
-                </label>
-
-                <label className="block space-y-2">
-                  <span className="text-sm font-semibold text-slate-900">Full name</span>
-                  <input
-                    value={form.studentName}
-                    onChange={event =>
-                      setForm(current => ({
-                        ...current,
-                        studentName: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
-                    placeholder="Aarav Sharma"
-                  />
-                </label>
-
-                <label className="block space-y-2">
-                  <span className="text-sm font-semibold text-slate-900">Email address</span>
-                  <input
-                    value={form.studentEmail}
-                    onChange={event =>
-                      setForm(current => ({
-                        ...current,
-                        studentEmail: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
-                    placeholder="student@example.com"
-                    type="email"
-                  />
-                </label>
-
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
-                >
-                  Proceed in Desktop App
-                </button>
-              </form>
-
-              {error ? (
-                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {error}
-                </div>
-              ) : null}
-
-              {status ? (
-                <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
-                  {status}
-                </div>
-              ) : null}
-
-              <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
-                <p className="text-sm font-semibold text-slate-900">Prepared desktop handoff</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Your room and identity details are packed into the desktop launch link below.
+            <div className="p-6 sm:p-8 lg:p-10">
+              <div className="max-w-xl">
+                <span className="eyebrow-pill">Student handoff</span>
+                <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+                  Prepare the desktop launch
+                </h2>
+                <p className="section-copy mt-3">
+                  We package your room and identity details into a desktop link so the app can open
+                  directly into the correct room.
                 </p>
 
-                <div className="mt-4 space-y-3">
-                  <div>
+                <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-950">Room code</span>
+                    <input
+                      value={form.roomCode}
+                      onChange={event =>
+                        setForm(current => ({
+                          ...current,
+                          roomCode: normalizeRoomCode(event.target.value),
+                        }))
+                      }
+                      className="input-field uppercase tracking-[0.18em]"
+                      maxLength={8}
+                      placeholder="AB12CD34"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-950">Full name</span>
+                    <input
+                      value={form.studentName}
+                      onChange={event =>
+                        setForm(current => ({
+                          ...current,
+                          studentName: event.target.value,
+                        }))
+                      }
+                      className="input-field"
+                      placeholder="Aarav Sharma"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-950">Email address</span>
+                    <input
+                      value={form.studentEmail}
+                      onChange={event =>
+                        setForm(current => ({
+                          ...current,
+                          studentEmail: event.target.value,
+                        }))
+                      }
+                      className="input-field"
+                      placeholder="student@example.com"
+                      type="email"
+                    />
+                  </label>
+
+                  <button type="submit" className="btn-primary w-full">
+                    Proceed in desktop app
+                  </button>
+                </form>
+
+                {error ? (
+                  <div className="mt-4 rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                {status ? (
+                  <div className="mt-4 rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    {status}
+                  </div>
+                ) : null}
+
+                <div className="mt-6 grid gap-4">
+                  <div className="surface-card rounded-[24px] px-4 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       Room code
                     </p>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-3 flex items-center gap-2">
                       <input
                         readOnly
                         value={normalizedRoomCode}
-                        className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-900"
+                        className="input-field flex-1 font-semibold uppercase tracking-[0.18em]"
                       />
                       <button
                         type="button"
                         disabled={!normalizedRoomCode}
                         onClick={() => handleCopy(normalizedRoomCode, 'roomCode')}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="btn-secondary"
                       >
                         {copiedField === 'roomCode' ? 'Copied' : 'Copy'}
                       </button>
                     </div>
                   </div>
 
-                  <div>
+                  <div className="surface-card rounded-[24px] px-4 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       Desktop link
                     </p>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-3 flex items-center gap-2">
                       <input
                         readOnly
                         value={desktopLink}
-                        className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-xs text-slate-700"
+                        className="input-field flex-1 text-xs"
                       />
                       <button
                         type="button"
                         disabled={!desktopLink}
                         onClick={() => handleCopy(desktopLink, 'desktopLink')}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="btn-secondary"
                       >
                         {copiedField === 'desktopLink' ? 'Copied' : 'Copy'}
                       </button>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {showFallbackHelp ? (
-                <div className="mt-6 rounded-[28px] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-                  <p className="font-semibold">If the desktop app did not open</p>
-                  <p className="mt-2 leading-6">
-                    Open the Electron proctoring app manually. If it is already open, use the room
-                    code above in the desktop join screen. You can also try the launch button again
-                    after the app has been started once on this device.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (desktopLink) {
-                          window.location.href = desktopLink;
-                        }
-                      }}
-                      className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-                    >
-                      Try desktop launch again
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(normalizedRoomCode, 'roomCode')}
-                      disabled={!normalizedRoomCode}
-                      className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Copy room code
-                    </button>
+                {showFallbackHelp ? (
+                  <div className="mt-6 rounded-[24px] border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+                    <p className="font-semibold">If the desktop app did not open</p>
+                    <p className="mt-2 leading-6">
+                      Open the Electron proctoring app manually. If it is already open, enter the
+                      room code above in the desktop join screen, then try the launch again.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (desktopLink) {
+                            window.location.href = desktopLink;
+                          }
+                        }}
+                        className="btn-primary"
+                      >
+                        Try desktop launch again
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(normalizedRoomCode, 'roomCode')}
+                        disabled={!normalizedRoomCode}
+                        className="btn-secondary"
+                      >
+                        Copy room code
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
           </div>
         </section>

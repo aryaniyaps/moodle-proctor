@@ -30,6 +30,27 @@ export const RoomCreationModal = ({
   } | null>(null);
   const [copiedValue, setCopiedValue] = useState<"invite" | "launch" | "code" | null>(null);
 
+  const selectedExam = exams.find((exam) => exam.id === selectedExamId) ?? null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isCreating) {
+        onClose();
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCreating, isOpen, onClose]);
+
   useEffect(() => {
     if (!isOpen) {
       setSelectedExamId(null);
@@ -127,150 +148,212 @@ export const RoomCreationModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isCreating) {
+          onClose();
+        }
+      }}
+    >
+      <div className="modal-shell max-w-[42rem] overflow-hidden rounded-[30px]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 px-6 py-5">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Create Proctoring Room</h2>
-            <p className="mt-0.5 text-sm text-gray-600">
-              {createdRoom ? "Room created successfully." : "Select an exam to monitor."}
+            <span className="eyebrow-pill">Room creation</span>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+              {createdRoom ? "Room ready to launch" : "Create a new proctoring room"}
+            </h2>
+            <p className="section-copy mt-2">
+              {createdRoom
+                ? "Share the launch details with students or move straight into monitoring."
+                : "Choose the exam you want to monitor and the workspace will activate the room for you."}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 transition-colors hover:text-gray-600"
+            className="btn-ghost rounded-full p-2"
             disabled={isCreating}
+            aria-label="Close room creation"
           >
-            <FiX className="h-6 w-6" />
+            <FiX className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="px-6 py-4">
+        <div className="max-h-[68vh] overflow-y-auto px-6 py-5 scroll-thin">
           {createdRoom ? (
             <div className="space-y-4">
-              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                <p className="text-sm font-medium text-green-800">Room activated successfully.</p>
-                <p className="mt-1 text-xs text-green-600">
-                  Share the student launch page so candidates can open the Electron exam app with the room code prefilled.
+              <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4">
+                <p className="text-sm font-semibold text-emerald-900">Room activated successfully</p>
+                <p className="mt-2 text-sm leading-6 text-emerald-800">
+                  The student browser handoff and the direct desktop link are both ready below.
                 </p>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Student Launch Link</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={createdRoom.launchLink}
-                    className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-mono"
-                  />
-                  <button
-                    onClick={() => handleCopy(createdRoom.launchLink, "launch")}
-                    className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700"
-                  >
-                    {copiedValue === "launch" ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
-                    {copiedValue === "launch" ? "Copied!" : "Copy"}
-                  </button>
+              <div className="grid gap-4">
+                <div className="surface-card rounded-[24px] px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Student launch link
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      readOnly
+                      value={createdRoom.launchLink}
+                      className="input-field flex-1 font-mono text-xs"
+                    />
+                    <button
+                      onClick={() => handleCopy(createdRoom.launchLink, "launch")}
+                      className="btn-primary sm:min-w-[7.5rem]"
+                    >
+                      {copiedValue === "launch" ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
+                      {copiedValue === "launch" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Students open this page in the browser before the desktop app takes over.
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Students open this page in the browser, enter their details, and click proceed to continue in the desktop app.
-                </p>
-              </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Desktop Deep Link</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={createdRoom.inviteLink}
-                    className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm font-mono"
-                  />
-                  <button
-                    onClick={() => handleCopy(createdRoom.inviteLink, "invite")}
-                    className="flex items-center gap-1 rounded-lg bg-gray-900 px-3 py-2 text-white transition-colors hover:bg-gray-700"
-                  >
-                    {copiedValue === "invite" ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
-                    {copiedValue === "invite" ? "Copied!" : "Copy"}
-                  </button>
+                <div className="surface-card rounded-[24px] px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Desktop deep link
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      readOnly
+                      value={createdRoom.inviteLink}
+                      className="input-field flex-1 font-mono text-xs"
+                    />
+                    <button
+                      onClick={() => handleCopy(createdRoom.inviteLink, "invite")}
+                      className="btn-secondary sm:min-w-[7.5rem]"
+                    >
+                      {copiedValue === "invite" ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
+                      {copiedValue === "invite" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Use this when the Electron app is already installed and ready on the student machine.
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Use this if the student already has the Electron app open and registered on the machine.
-                </p>
-              </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Room Code</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={createdRoom.roomCode}
-                    className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-center text-lg font-bold"
-                  />
-                  <button
-                    onClick={() => handleCopy(createdRoom.roomCode, "code")}
-                    className="rounded-lg bg-gray-600 px-3 py-2 text-white transition-colors hover:bg-gray-700"
-                  >
-                    {copiedValue === "code" ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
-                  </button>
+                <div className="surface-card rounded-[24px] px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Room code
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="text"
+                      readOnly
+                      value={createdRoom.roomCode}
+                      className="input-field flex-1 text-center font-mono text-lg font-semibold uppercase tracking-[0.18em]"
+                    />
+                    <button
+                      onClick={() => handleCopy(createdRoom.roomCode, "code")}
+                      className="btn-secondary sm:min-w-[7.5rem]"
+                    >
+                      {copiedValue === "code" ? <FiCheck className="h-4 w-4" /> : <FiCopy className="h-4 w-4" />}
+                      {copiedValue === "code" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               {isLoadingExams ? (
-                <div className="flex items-center justify-center py-8">
-                  <FiLoader className="h-6 w-6 animate-spin text-blue-600" />
-                  <span className="ml-2 text-gray-600">Loading exams...</span>
+                <div className="empty-state flex items-center justify-center gap-3">
+                  <FiLoader className="h-5 w-5 animate-spin text-emerald-700" />
+                  <span>Loading exams...</span>
                 </div>
               ) : error ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                <div className="rounded-[24px] border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                   {error}
                 </div>
               ) : exams.length === 0 ? (
-                <div className="py-8 text-center text-gray-500">
-                  No exams are available yet.
-                </div>
+                <div className="empty-state">No exams are available yet.</div>
               ) : (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Select Exam</label>
-                  <div className="max-h-64 space-y-2 overflow-y-auto">
-                    {exams.map((exam) => (
-                      <button
-                        key={exam.id}
-                        onClick={() => setSelectedExamId(exam.id)}
-                        className={[
-                          "w-full rounded-lg border-2 p-3 text-left transition-all",
-                          selectedExamId === exam.id
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 bg-white hover:border-blue-300"
-                        ].join(" ")}
-                      >
-                        <p className="font-medium text-gray-900">{exam.examName}</p>
-                        <p className="text-sm text-gray-600">{exam.courseName}</p>
-                      </button>
-                    ))}
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">Choose an exam</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      The selected exam becomes the active room context for monitoring and student launch.
+                    </p>
                   </div>
-                </div>
+
+                  <div className="max-h-[22rem] space-y-3 overflow-y-auto scroll-thin">
+                    {exams.map((exam) => {
+                      const selected = selectedExamId === exam.id;
+
+                      return (
+                        <button
+                          key={exam.id}
+                          onClick={() => setSelectedExamId(exam.id)}
+                          className={[
+                            "w-full rounded-[24px] border p-4 text-left transition-all duration-200",
+                            selected
+                              ? "border-slate-950 bg-slate-950 text-white"
+                              : "border-slate-200 bg-white/90 hover:border-slate-300 hover:bg-white"
+                          ].join(" ")}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-base font-semibold">{exam.examName}</p>
+                              <p
+                                className={[
+                                  "mt-1 text-sm",
+                                  selected ? "text-slate-300" : "text-slate-500"
+                                ].join(" ")}
+                              >
+                                {exam.courseName}
+                              </p>
+                            </div>
+                            {selected ? (
+                              <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
+                                Selected
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div
+                            className={[
+                              "mt-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.16em]",
+                              selected ? "text-slate-300" : "text-slate-400"
+                            ].join(" ")}
+                          >
+                            <span>{exam.durationMinutes} min</span>
+                            <span>Max warnings {exam.maxWarnings}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {selectedExam ? (
+                    <div className="surface-card rounded-[24px] px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Selected exam
+                      </p>
+                      <p className="mt-2 text-lg font-semibold text-slate-950">{selectedExam.examName}</p>
+                      <p className="mt-1 text-sm text-slate-500">{selectedExam.courseName}</p>
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
           )}
         </div>
 
         {!createdRoom ? (
-          <div className="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-6 py-4">
-            <button
-              onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
-              disabled={isCreating}
-            >
+          <div className="flex justify-end gap-3 border-t border-slate-200/80 bg-slate-50/80 px-6 py-4">
+            <button onClick={onClose} className="btn-secondary" disabled={isCreating}>
               Cancel
             </button>
             <button
               onClick={handleCreateRoom}
               disabled={!selectedExamId || isCreating}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary"
             >
               {isCreating ? (
                 <>
@@ -280,7 +363,7 @@ export const RoomCreationModal = ({
               ) : (
                 <>
                   <FiPlus className="h-4 w-4" />
-                  Create Room
+                  Create room
                 </>
               )}
             </button>

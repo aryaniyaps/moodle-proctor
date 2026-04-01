@@ -35,6 +35,25 @@ export const RoomSelector = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isSwitching) {
+        onClose();
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, isSwitching, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const fetchRooms = async () => {
       setIsLoading(true);
       setError(null);
@@ -73,42 +92,53 @@ export const RoomSelector = ({
       onRoomSelect(room);
       setIsSwitching(false);
       onClose();
-    }, 500);
+    }, 450);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="max-h-[80vh] w-full max-w-2xl mx-4 flex flex-col rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !isSwitching) {
+          onClose();
+        }
+      }}
+    >
+      <div className="modal-shell max-h-[88vh] max-w-3xl overflow-hidden rounded-[30px]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200/80 px-6 py-5">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Select Proctoring Room</h2>
-            <p className="mt-0.5 text-sm text-gray-600">Choose a room to monitor</p>
+            <span className="eyebrow-pill">Room switcher</span>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+              Move to another active room
+            </h2>
+            <p className="section-copy mt-2">
+              Pick the room you want on the camera wall and the monitoring desk will switch over.
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 transition-colors hover:text-gray-600"
+            className="btn-ghost rounded-full p-2"
             disabled={isSwitching}
+            aria-label="Close room selector"
           >
-            <FiX className="h-6 w-6" />
+            <FiX className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="max-h-[65vh] overflow-y-auto px-6 py-5 scroll-thin">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <FiLoader className="h-8 w-8 animate-spin text-blue-600" />
-              <span className="ml-3 text-gray-600">Loading rooms...</span>
+            <div className="empty-state flex items-center justify-center gap-3">
+              <FiLoader className="h-5 w-5 animate-spin text-emerald-700" />
+              <span>Loading active rooms...</span>
             </div>
           ) : error ? (
-            <div className="py-12 text-center">
-              <p className="text-red-600">{error}</p>
+            <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
+              {error}
             </div>
           ) : rooms.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
-              No active rooms found yet. Create a room to get started.
-            </div>
+            <div className="empty-state">No active rooms found yet. Create a room to get started.</div>
           ) : (
             <div className="space-y-3">
               {rooms.map((room) => {
@@ -120,39 +150,46 @@ export const RoomSelector = ({
                     onClick={() => handleRoomSelect(room)}
                     disabled={isSwitching}
                     className={[
-                      "w-full rounded-lg border-2 p-4 text-left transition-all",
+                      "w-full rounded-[24px] border p-4 text-left transition-all duration-200",
                       isCurrentRoom
-                        ? "cursor-default border-blue-500 bg-blue-50"
-                        : "cursor-pointer border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50",
-                      isSwitching ? "cursor-wait opacity-50" : ""
+                        ? "border-slate-950 bg-slate-950 text-white"
+                        : "border-slate-200 bg-white/90 hover:border-slate-300 hover:bg-white",
+                      isSwitching ? "cursor-wait opacity-70" : ""
                     ].join(" ")}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-semibold text-gray-900">{room.examName}</h3>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-semibold">{room.examName}</h3>
                           {isCurrentRoom ? (
-                            <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600">
-                              Current
+                            <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
+                              Current room
                             </span>
                           ) : null}
                         </div>
-                        <div className="mt-2 flex items-center gap-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
+
+                        <div
+                          className={[
+                            "mt-3 flex flex-wrap items-center gap-3 text-sm",
+                            isCurrentRoom ? "text-slate-300" : "text-slate-600"
+                          ].join(" ")}
+                        >
+                          <span className="inline-flex items-center gap-1.5">
                             <FiUsers className="h-4 w-4" />
-                            <span>{room.studentCount} students</span>
-                          </div>
-                          <div className="flex items-center gap-1">
+                            {room.studentCount} students
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
                             <FiClock className="h-4 w-4" />
-                            <span>{room.durationMinutes} min</span>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Code: <span className="font-mono font-medium">{room.roomCode}</span>
-                          </div>
+                            {room.durationMinutes} min
+                          </span>
+                          <span className="font-mono uppercase tracking-[0.16em]">
+                            {room.roomCode}
+                          </span>
                         </div>
                       </div>
+
                       {isSwitching && !isCurrentRoom ? (
-                        <FiLoader className="h-5 w-5 animate-spin text-blue-600" />
+                        <FiLoader className="mt-1 h-5 w-5 animate-spin text-emerald-600" />
                       ) : null}
                     </div>
                   </button>

@@ -38,6 +38,16 @@ const severityPill = (severity: "low" | "medium" | "high") => {
   return "border-blue-200 bg-blue-50 text-blue-700";
 };
 
+const severityBorder = (severity: "low" | "medium" | "high") => {
+  if (severity === "high") {
+    return "border-red-200/80";
+  }
+  if (severity === "medium") {
+    return "border-amber-200/80";
+  }
+  return "border-blue-200/80";
+};
+
 export const AlertPanel = (_props: Props) => {
   const { attempts, isLoading, error } = useAttempts({
     limit: 25
@@ -71,46 +81,40 @@ export const AlertPanel = (_props: Props) => {
   const mediumPriority = attentionQueue.filter((alert) => alert.severity === "medium").length;
 
   return (
-    <aside className="dashboard-panel rounded-[28px]">
-      <div className="border-b border-slate-200/80 px-5 py-5">
-        <div className="flex items-start justify-between gap-4">
+    <section className="surface-panel table-shell">
+      <div className="border-b border-slate-200/80 px-5 py-5 md:px-6 md:py-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="dashboard-kicker">Incident Queue</p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">
-              Review queue
+            <span className="eyebrow-pill">Incident queue</span>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
+              Alerts waiting for review
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Real attempts with recorded violations are surfaced here so teachers can triage quickly.
+            <p className="section-copy mt-3 max-w-2xl">
+              Real attempts with suspicious events surface here first so teachers can triage in the
+              right order.
             </p>
           </div>
-          <span className="rounded-full bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white">
-            {isLoading ? "…" : attentionQueue.length}
-          </span>
-        </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
-              High
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-red-900">
-              {isLoading ? "…" : highPriority}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-              Medium
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-amber-900">
-              {isLoading ? "…" : mediumPriority}
-            </p>
+          <div className="grid grid-cols-2 gap-3 sm:min-w-[18rem]">
+            <div className="metric-card">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">High</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                {isLoading ? "..." : highPriority}
+              </p>
+            </div>
+            <div className="metric-card">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Medium</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                {isLoading ? "..." : mediumPriority}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-h-[760px] space-y-3 overflow-y-auto px-4 py-4 scroll-thin">
+      <div className="max-h-[780px] space-y-3 overflow-y-auto px-4 py-4 md:px-5 md:py-5 scroll-thin">
         {error ? (
-          <div className="rounded-[22px] border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
+          <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
             {error.message}
           </div>
         ) : null}
@@ -119,61 +123,51 @@ export const AlertPanel = (_props: Props) => {
           attentionQueue.map((alert) => (
             <article
               key={alert.id}
-              className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-sm shadow-slate-200/40"
+              className={`surface-card rounded-[24px] border px-4 py-4 ${severityBorder(alert.severity)}`}
             >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100">
-                  {alertIcon(alert.severity)}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold leading-6 text-slate-900">
-                      {alert.message}
-                    </p>
-                    <span className="whitespace-nowrap text-xs font-medium text-slate-400">
-                      {alert.timestamp}
-                    </span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100">
+                    {alertIcon(alert.severity)}
                   </div>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    <span className="font-semibold text-slate-700">{alert.studentName}</span>
-                    {" / "}
-                    {alert.examName}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">{alert.studentLabel}</p>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${severityPill(
-                        alert.severity
-                      )}`}
-                    >
-                      {alert.severity === "high"
-                        ? "High priority"
-                        : alert.severity === "medium"
-                          ? "Medium priority"
-                          : "Low priority"}
-                    </span>
-                    <StatusBadge status={alert.riskStatus} />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-950">{alert.studentName}</p>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${severityPill(
+                          alert.severity
+                        )}`}
+                      >
+                        {alert.severity}
+                      </span>
+                      <StatusBadge status={alert.riskStatus} />
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">{alert.examName}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{alert.message}</p>
+                    <p className="mt-2 text-xs text-slate-400">{alert.studentLabel}</p>
                   </div>
                 </div>
+
+                <span className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+                  {alert.timestamp}
+                </span>
               </div>
             </article>
           ))}
 
         {!error && !isLoading && attentionQueue.length === 0 && (
-          <div className="rounded-[22px] border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-            No attempts with violations are waiting for review.
+          <div className="empty-state">
+            No attempts with violations are waiting for review right now.
           </div>
         )}
 
         {isLoading && (
-          <div className="rounded-[22px] border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-            Loading incident queue…
+          <div className="empty-state">
+            Loading incident queue...
           </div>
         )}
       </div>
-    </aside>
+    </section>
   );
 };

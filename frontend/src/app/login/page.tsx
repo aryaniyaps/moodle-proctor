@@ -6,9 +6,9 @@ import { FormEvent, useState } from "react";
 import { FiActivity, FiArrowRight, FiShield, FiVideo } from "react-icons/fi";
 
 const platformStats = [
-  { label: "Live Rooms", value: "12", icon: <FiVideo className="h-4 w-4" /> },
-  { label: "Open Alerts", value: "05", icon: <FiActivity className="h-4 w-4" /> },
-  { label: "Secure Reviews", value: "98%", icon: <FiShield className="h-4 w-4" /> }
+  { label: "Live rooms", value: "12", icon: <FiVideo className="h-4 w-4" /> },
+  { label: "Open alerts", value: "05", icon: <FiActivity className="h-4 w-4" /> },
+  { label: "Secure reviews", value: "98%", icon: <FiShield className="h-4 w-4" /> }
 ];
 
 function LoginPageContent() {
@@ -47,32 +47,32 @@ function LoginPageContent() {
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-7xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-slate-900 px-6 py-8 text-white shadow-2xl shadow-slate-900/15 sm:px-8 sm:py-10 lg:px-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.3),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(45,212,191,0.18),_transparent_26%)]" />
-          <div className="relative flex h-full flex-col justify-between gap-8">
+        <section className="relative overflow-hidden rounded-[36px] bg-slate-950 px-6 py-8 text-white shadow-[0_40px_100px_-50px_rgba(15,23,42,0.8)] sm:px-8 sm:py-10 lg:px-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.24),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.18),_transparent_26%)]" />
+          <div className="relative flex h-full flex-col justify-between gap-10">
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-white backdrop-blur-sm">
                   PV
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
-                    Exam Operations
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">
+                    Exam operations
                   </p>
                   <h1 className="mt-1 text-lg font-semibold">ProctorVision</h1>
                 </div>
               </div>
 
-              <div className="mt-10 max-w-2xl">
-                <p className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-100">
-                  Unified Monitoring Workspace
-                </p>
+              <div className="mt-12 max-w-2xl">
+                <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                  Calm monitoring system
+                </span>
                 <h2 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
-                  Run secure exams from one calm, responsive control center.
+                  Run secure exams from one clear, steady control desk.
                 </h2>
                 <p className="mt-5 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
-                  Review live feeds, manage alerts, and keep evidence workflows moving with a
-                  dashboard built for smooth exam operations.
+                  Live monitoring, alert review, and reporting stay connected without burying the
+                  operator under unnecessary visual noise.
                 </p>
               </div>
             </div>
@@ -83,7 +83,7 @@ function LoginPageContent() {
                   key={stat.label}
                   className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm"
                 >
-                  <div className="flex items-center justify-between text-sky-100">
+                  <div className="flex items-center justify-between text-emerald-100">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em]">{stat.label}</p>
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
                       {stat.icon}
@@ -95,38 +95,56 @@ function LoginPageContent() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="aspect-video rounded-[20px] border border-white/10 bg-white/10 backdrop-blur-sm"
-                />
-              ))}
+              <div className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                  Live response
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">
+                  Stay close to the room without losing context on alerts and students.
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                  Evidence flow
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">
+                  Reports and incident history stay readable and ready for review.
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/10 px-4 py-4 backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                  Secure access
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">
+                  Authentication stays tied to your Moodle-backed teacher account.
+                </p>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="dashboard-panel flex rounded-[32px] px-6 py-8 sm:px-8 sm:py-10">
+        <section className="surface-panel flex rounded-[36px] px-6 py-8 sm:px-8 sm:py-10">
           <div className="m-auto w-full max-w-xl">
             <div className="mb-8">
-              <p className="dashboard-kicker">Secure Access</p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+              <span className="eyebrow-pill">Secure access</span>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                 Sign in to continue
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
-                Access the monitoring workspace, incident queue, participant roster, and reporting tools.
+              <p className="section-copy mt-3">
+                Enter your Moodle username or email and password to access the teacher workspace.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {error}
                 </div>
               ) : null}
 
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-900">
-                  Moodle Username or Email
+                <label className="block text-sm font-semibold text-slate-950">
+                  Moodle username or email
                 </label>
                 <input
                   type="text"
@@ -135,12 +153,12 @@ function LoginPageContent() {
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="proctor@university.edu"
                   disabled={submitting}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="input-field"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-900">Password</label>
+                <label className="block text-sm font-semibold text-slate-950">Password</label>
                 <input
                   type="password"
                   required
@@ -148,23 +166,21 @@ function LoginPageContent() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   disabled={submitting}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="input-field"
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-slate-500">Protected by your Moodle account</span>
-                <button type="button" className="font-semibold text-blue-700 transition-colors hover:text-blue-800">
-                  Forgot password?
-                </button>
+              <div className="rounded-[24px] border border-slate-200 bg-white/75 px-4 py-4 text-sm leading-6 text-slate-600">
+                Passwords are managed in Moodle. If your access is missing, contact the exam admin
+                rather than requesting a reset from this dashboard.
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                className="btn-primary w-full"
               >
-                <span>{submitting ? "Signing in..." : "Enter Dashboard"}</span>
+                <span>{submitting ? "Signing in..." : "Enter dashboard"}</span>
                 <FiArrowRight className="h-4 w-4" />
               </button>
             </form>

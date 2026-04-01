@@ -120,6 +120,28 @@ export class DuplicateEnrollmentError extends Error {
   }
 }
 
+export class RoomNotJoinableError extends Error {
+  constructor(roomCode: string, status: Room['status']) {
+    const messageByStatus: Record<Room['status'], string> = {
+      created: 'This room is not live yet. Wait for the instructor to start the session.',
+      activated: `Room ${roomCode} is joinable.`,
+      closed: 'This room has already been closed by the instructor.'
+    };
+
+    super(messageByStatus[status] || 'This room is not accepting new joins right now.');
+    this.name = 'RoomNotJoinableError';
+  }
+}
+
+export class AttemptAlreadyCompletedError extends Error {
+  constructor(roomCode: string, email: string) {
+    super(
+      `The exam for ${email} in room ${roomCode} has already been completed. Ask the instructor for a new room if you need another attempt.`
+    );
+    this.name = 'AttemptAlreadyCompletedError';
+  }
+}
+
 export class RoomFullError extends Error {
   constructor(roomCode: string, current: number, capacity: number) {
     super(`Room ${roomCode} is full (${current}/${capacity} students)`);
@@ -503,19 +525,40 @@ export class ProctoringRoomService {
 
     const room = roomResult.rows[0];
 
+    if (room.status !== 'activated') {
+      throw new RoomNotJoinableError(room.room_code, room.status);
+    }
+
     // If the student already joined this room, return the existing enrollment so reconnects work.
-    const existingEnrollmentResult = await this.pg.query<{ id: number }>(
-      `SELECT id
-       FROM proctoring_room_students
-       WHERE room_id = $1
-       AND LOWER(student_email) = LOWER($2)
+    const existingEnrollmentResult = await this.pg.query<{
+      id: number;
+      attemptId: number | null;
+      attemptStatus: string | null;
+    }>(
+      `SELECT
+         prs.id,
+         prs.attempt_id as "attemptId",
+         ea.status as "attemptStatus"
+       FROM proctoring_room_students prs
+       LEFT JOIN exam_attempts ea ON ea.id = prs.attempt_id
+       WHERE prs.room_id = $1
+       AND LOWER(prs.student_email) = LOWER($2)
        LIMIT 1`,
       [roomId, sanitizedEmail]
     );
 
     if (existingEnrollmentResult.rows.length > 0) {
+      const existingEnrollment = existingEnrollmentResult.rows[0];
+
+      if (
+        existingEnrollment.attemptId &&
+        ['submitted', 'terminated'].includes(existingEnrollment.attemptStatus || '')
+      ) {
+        throw new AttemptAlreadyCompletedError(room.room_code, sanitizedEmail);
+      }
+
       return {
-        id: existingEnrollmentResult.rows[0].id,
+        id: existingEnrollment.id,
         alreadyEnrolled: true
       };
     }

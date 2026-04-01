@@ -23,36 +23,46 @@ export const ReportTable = () => {
   });
 
   const completedCount = reports.filter((report) => report.status === "submitted").length;
+  const flaggedCount = reports.filter((report) => report.violationCount > 0).length;
 
   return (
-    <section className="dashboard-panel overflow-hidden rounded-[28px]">
-      <div className="border-b border-slate-200/80 px-6 py-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <section className="surface-panel table-shell">
+      <div className="border-b border-slate-200/80 px-6 py-5 md:px-6 md:py-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="dashboard-kicker">Evidence Library</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+            <span className="eyebrow-pill">Evidence library</span>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">
               Exam reports
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Review real attempt outcomes, violation counts, and follow-up priority from one place.
+            <p className="section-copy mt-3 max-w-3xl">
+              Review attempt outcomes, violation counts, and evidence workflow status from one
+              cleaner queue.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:min-w-[300px]">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="metric-card min-w-[10rem]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Total reports
               </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {isLoading ? "…" : total}
+              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                {isLoading ? "..." : total}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            <div className="metric-card min-w-[10rem]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 Submitted
               </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">
-                {isLoading ? "…" : completedCount}
+              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                {isLoading ? "..." : completedCount}
+              </p>
+            </div>
+            <div className="metric-card min-w-[10rem]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                Flagged
+              </p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                {isLoading ? "..." : flaggedCount}
               </p>
             </div>
           </div>
@@ -61,7 +71,7 @@ export const ReportTable = () => {
 
       {error ? (
         <div className="px-6 py-6">
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
+          <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
             {error.message}
           </div>
         </div>
@@ -69,8 +79,8 @@ export const ReportTable = () => {
 
       <div className="overflow-x-auto scroll-thin">
         <table className="min-w-full">
-          <thead className="bg-slate-50/80">
-            <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <thead className="table-head">
+            <tr>
               <th className="px-6 py-4">Student</th>
               <th className="px-6 py-4">Exam</th>
               <th className="px-6 py-4 text-center">Alerts</th>
@@ -82,7 +92,7 @@ export const ReportTable = () => {
             {isLoading ? (
               <tr>
                 <td className="px-6 py-10 text-sm text-slate-500" colSpan={5}>
-                  Loading reports…
+                  Loading reports...
                 </td>
               </tr>
             ) : reports.length === 0 ? (
@@ -93,17 +103,14 @@ export const ReportTable = () => {
               </tr>
             ) : (
               reports.map((report) => (
-                <tr
-                  key={report.attemptId}
-                  className="border-t border-slate-200/80 bg-white transition-colors hover:bg-slate-50/80"
-                >
+                <tr key={report.attemptId} className="table-row">
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{report.studentName}</p>
+                      <p className="text-sm font-semibold text-slate-950">{report.studentName}</p>
                       <p className="mt-1 text-xs text-slate-400">{report.studentEmail}</p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                  <td className="px-6 py-4 text-sm font-medium text-slate-700">
                     <div>
                       <p>{report.examName}</p>
                       <p className="mt-1 text-xs text-slate-400">{report.courseName}</p>

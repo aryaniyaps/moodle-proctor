@@ -5,7 +5,11 @@
 
 import fp from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
-import { createProctoringRoomService, generateEnrollmentSignature } from './room.service';
+import {
+  createProctoringRoomService,
+  generateEnrollmentSignature,
+  RoomNotJoinableError
+} from './room.service';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import type {
   CreateRoomRequest,
@@ -195,6 +199,10 @@ export default fp(async (fastify: FastifyInstance) => {
         // 1. Get room details (validates room exists)
         const room = await roomService.getRoomByCode(code);
 
+        if (room.status !== 'activated') {
+          throw new RoomNotJoinableError(room.room_code, room.status);
+        }
+
         // 2. Get or create user
         const user = await roomService.getOrCreateUserByEmail(
           body.studentEmail,
@@ -237,6 +245,16 @@ export default fp(async (fastify: FastifyInstance) => {
           return reply.code(409).send({
             success: false,
             error: 'You are already enrolled in this room'
+          });
+        }
+
+        if (
+          (error as Error).name === 'RoomNotJoinableError' ||
+          (error as Error).name === 'AttemptAlreadyCompletedError'
+        ) {
+          return reply.code(409).send({
+            success: false,
+            error: (error as Error).message
           });
         }
 

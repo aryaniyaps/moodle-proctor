@@ -14,6 +14,8 @@ import {
   CapacityExceededError,
   InvalidStateTransitionError,
   NotRoomOwnerError,
+  RoomNotJoinableError,
+  AttemptAlreadyCompletedError,
   RoomFullError
 } from '../room.service';
 
@@ -472,6 +474,7 @@ describe('ProctoringRoomService', () => {
       const mockRoom = {
         id: 1,
         room_code: 'ABC12345',
+        status: 'activated',
         capacity: 15
       };
 
@@ -508,6 +511,7 @@ describe('ProctoringRoomService', () => {
       const mockRoom = {
         id: 1,
         room_code: 'FULL123',
+        status: 'activated',
         capacity: 15
       };
 
@@ -530,6 +534,7 @@ describe('ProctoringRoomService', () => {
       const mockRoom = {
         id: 1,
         room_code: 'DUP12345',
+        status: 'activated',
         capacity: 15
       };
 
@@ -558,6 +563,7 @@ describe('ProctoringRoomService', () => {
       const mockRoom = {
         id: 1,
         room_code: 'SANITIZE',
+        status: 'activated',
         capacity: 15
       };
 
@@ -578,6 +584,85 @@ describe('ProctoringRoomService', () => {
       const insertCall = mockFn.mock.calls[2];
       expect(insertCall[1][1]).not.toContain('<script>');
       expect(insertCall[1][2]).not.toContain('<script>');
+    });
+
+    it('should reject joins when the room is not activated yet', async () => {
+      const mockRoom = {
+        id: 1,
+        room_code: 'WAIT1234',
+        status: 'created',
+        capacity: 15
+      };
+
+      const mockFn = jest.fn() as any;
+      mockPool.query = mockFn;
+      mockFn.mockResolvedValueOnce({ rows: [mockRoom] });
+
+      await expect(roomService.enrollStudent({
+        roomId: 1,
+        userId: 100,
+        studentName: 'Late Student',
+        studentEmail: 'late@example.com'
+      })).rejects.toThrow(RoomNotJoinableError);
+    });
+
+    it('should allow reconnect when the existing room attempt is still active', async () => {
+      const mockRoom = {
+        id: 1,
+        room_code: 'LIVE1234',
+        status: 'activated',
+        capacity: 15
+      };
+
+      const mockFn = jest.fn() as any;
+      mockPool.query = mockFn;
+      mockFn.mockResolvedValueOnce({ rows: [mockRoom] });
+      mockFn.mockResolvedValueOnce({
+        rows: [{
+          id: 222,
+          attemptId: 9001,
+          attemptStatus: 'in_progress'
+        }]
+      });
+
+      const result = await roomService.enrollStudent({
+        roomId: 1,
+        userId: 100,
+        studentName: 'Reconnect Student',
+        studentEmail: 'reconnect@example.com'
+      });
+
+      expect(result).toEqual({
+        id: 222,
+        alreadyEnrolled: true
+      });
+    });
+
+    it('should reject rejoin when the room attempt has already been completed', async () => {
+      const mockRoom = {
+        id: 1,
+        room_code: 'DONE1234',
+        status: 'activated',
+        capacity: 15
+      };
+
+      const mockFn = jest.fn() as any;
+      mockPool.query = mockFn;
+      mockFn.mockResolvedValueOnce({ rows: [mockRoom] });
+      mockFn.mockResolvedValueOnce({
+        rows: [{
+          id: 333,
+          attemptId: 9002,
+          attemptStatus: 'submitted'
+        }]
+      });
+
+      await expect(roomService.enrollStudent({
+        roomId: 1,
+        userId: 100,
+        studentName: 'Submitted Student',
+        studentEmail: 'submitted@example.com'
+      })).rejects.toThrow(AttemptAlreadyCompletedError);
     });
   });
 });

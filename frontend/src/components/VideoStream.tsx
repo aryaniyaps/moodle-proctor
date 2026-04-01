@@ -40,27 +40,27 @@ export function VideoStream({
   }[connectionState];
 
   return (
-    <article className="group relative h-full overflow-hidden rounded-[22px] border border-white/10 bg-slate-900 shadow-2xl shadow-slate-950/20">
+    <article className="group relative h-full overflow-hidden rounded-[24px] border border-white/10 bg-slate-900 shadow-2xl shadow-slate-950/20">
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={false}
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.015]"
       />
 
       <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
-        <div className="flex items-center gap-2 rounded-full bg-slate-950/65 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+        <div className="flex items-center gap-2 rounded-full bg-slate-950/70 px-3 py-1.5 text-xs font-semibold capitalize text-white backdrop-blur-sm">
           <span className={`h-2.5 w-2.5 rounded-full ${connectionTone}`} />
           {connectionState}
         </div>
 
-        <div className="flex items-center gap-2 rounded-full bg-slate-950/65 px-3 py-1.5 text-[11px] font-medium text-slate-200 backdrop-blur-sm">
-          <span className="truncate">{peerId}</span>
+        <div className="rounded-full bg-slate-950/70 px-3 py-1.5 text-[11px] font-medium text-slate-200 backdrop-blur-sm">
+          {peerId}
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-4">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-transparent p-4">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
@@ -75,7 +75,7 @@ export function VideoStream({
                 'flex h-9 w-9 items-center justify-center rounded-full border text-white backdrop-blur-sm',
                 videoEnabled
                   ? 'border-emerald-400/30 bg-emerald-500/20'
-                  : 'border-red-400/30 bg-red-500/20'
+                  : 'border-red-400/30 bg-red-500/20',
               ].join(' ')}
             >
               {videoEnabled ? <FiVideo size={15} /> : <FiVideoOff size={15} />}
@@ -85,7 +85,7 @@ export function VideoStream({
                 'flex h-9 w-9 items-center justify-center rounded-full border text-white backdrop-blur-sm',
                 audioEnabled
                   ? 'border-emerald-400/30 bg-emerald-500/20'
-                  : 'border-red-400/30 bg-red-500/20'
+                  : 'border-red-400/30 bg-red-500/20',
               ].join(' ')}
             >
               {audioEnabled ? <FiMic size={15} /> : <FiMicOff size={15} />}
@@ -95,7 +95,7 @@ export function VideoStream({
       </div>
 
       {!isProducing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/72 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/76 backdrop-blur-sm">
           <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5 text-center">
             <FiVideoOff size={28} className="mx-auto text-slate-200" />
             <p className="mt-3 text-sm font-semibold text-white">Camera paused</p>
