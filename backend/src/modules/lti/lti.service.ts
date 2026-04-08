@@ -23,7 +23,7 @@ import {
 
 const OAUTH_TIMESTAMP_WINDOW = 300; // 5 minutes in seconds
 const DEFAULT_CONSUMER_KEY = process.env.LTI_CONSUMER_KEY || 'moodle';
-const DEFAULT_CONSUMER_SECRET = process.env.LTI_CONSUMER_SECRET || 'secret';
+const DEFAULT_CONSUMER_SECRET = process.env.LTI_CONSUMER_SECRET || process.env.LTI_SECRET || 'secret';
 
 // ============================================================================
 // Nonce Store (in-memory for OAuth 1.0)
@@ -87,11 +87,18 @@ const nonceStore = new MemoryNonceStore();
  * NOTE: We create provider per-request since consumer key/secret may vary
  */
 function createProvider(consumerKey: string, consumerSecret: string): Provider {
-  return new Provider(consumerKey, consumerSecret, {
-    signature_method: 'HMAC-SHA1',
-    nonce: () => crypto.randomBytes(16).toString('base64'),
-    timestamp: () => Math.floor(Date.now() / 1000).toString()
-  }, nonceStore);
+  // ims-lti Provider constructor signature:
+  // new Provider(consumerKey, consumerSecret, options, nonceStore)
+  return new Provider(
+    consumerKey,
+    consumerSecret,
+    {
+      signature_method: 'HMAC-SHA1',
+      nonce: () => crypto.randomBytes(16).toString('base64'),
+      timestamp: () => Math.floor(Date.now() / 1000).toString()
+    },
+    nonceStore as any // Cast to any to bypass type checking for nonceStore
+  );
 }
 
 // ============================================================================
@@ -144,8 +151,14 @@ export async function validateLaunchRequest(
     // For MVP, use default consumer key/secret from environment variables
     if (consumerKey !== DEFAULT_CONSUMER_KEY) {
       // Future: Query lti_consumers table for consumer secret
-      logger.warn('Non-default consumer key', { consumerKey });
+      logger.warn('Non-default consumer key', { consumerKey, defaultKey: DEFAULT_CONSUMER_KEY });
     }
+
+    logger.info('LTI consumer credentials', {
+      consumerKey,
+      usingDefaultSecret: consumerSecret === DEFAULT_CONSUMER_SECRET,
+      secretLength: consumerSecret.length
+    });
 
     // Step 4: Validate OAuth signature using ims-lti Provider
     // NOTE: For development/testing, you can disable signature validation
@@ -174,8 +187,12 @@ export async function validateLaunchRequest(
           consumerKey,
           contextId: validatedBody.context_id,
           hasSignature: !!validatedBody.oauth_signature,
+          signatureLength: validatedBody.oauth_signature?.length,
           timestamp: validatedBody.oauth_timestamp,
-          now: Math.floor(Date.now() / 1000)
+          nonce: validatedBody.oauth_nonce,
+          now: Math.floor(Date.now() / 1000),
+          method: validatedBody.oauth_signature_method,
+          bodyKeys: Object.keys(requestBody).filter(k => !k.startsWith('oauth_'))
         });
         throw new LtiValidationError('Invalid OAuth signature');
       }
