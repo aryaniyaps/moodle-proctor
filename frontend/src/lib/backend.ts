@@ -127,6 +127,7 @@ export interface ProctoringRoomSummary {
   examName: string;
   courseName: string;
   studentCount: number;
+  capacity: number;
   durationMinutes: number;
   createdAt: string;
   activatedAt: string | null;
@@ -381,6 +382,16 @@ class BackendAPIClient {
       `/api/room/${roomId}/close`,
       {
         method: 'POST',
+      }
+    );
+  }
+
+  async updateRoom(roomId: number, updates: { capacity: number }) {
+    return this.request<{ success: true; data: ProctoringRoomSummary }>(
+      `/api/room/${roomId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updates),
       }
     );
   }
