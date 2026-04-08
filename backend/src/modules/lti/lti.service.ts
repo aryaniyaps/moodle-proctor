@@ -30,25 +30,26 @@ const DEFAULT_CONSUMER_SECRET = process.env.LTI_CONSUMER_SECRET || process.env.L
 // ============================================================================
 
 /**
- * Nonce store interface for ims-lti library
- */
-interface NonceStore {
-  isNew(nonce: string, timestamp: number): boolean;
-  clean(): void;
-}
-
-/**
  * Simple in-memory nonce store to prevent replay attacks
+ * Compatible with ims-lti Provider interface
  */
-class MemoryNonceStore implements NonceStore {
+class MemoryNonceStore {
   private nonces = new Set<string>();
   private maxSize = 1000;
 
-  isNew(nonce: string, timestamp: number): boolean {
+  isNonceStore(): boolean {
+    return true;
+  }
+
+  isNew(nonce: string, timestamp: string | number, callback?: (err: Error | null, valid?: boolean) => void): boolean | void {
     const nonceKey = `${nonce}_${timestamp}`;
 
     // Check if nonce was already used
     if (this.nonces.has(nonceKey)) {
+      if (callback) {
+        callback(new Error('Nonce already seen'), false);
+        return false;
+      }
       return false;
     }
 
@@ -60,7 +61,20 @@ class MemoryNonceStore implements NonceStore {
       this.clean();
     }
 
+    if (callback) {
+      callback(null, true);
+      return true;
+    }
     return true;
+  }
+
+  setUsed(nonce: string, timestamp: string | number, callback?: (err: Error | null) => void): void {
+    // This is called by isNew internally
+    const nonceKey = `${nonce}_${timestamp}`;
+    this.nonces.add(nonceKey);
+    if (callback) {
+      callback(null);
+    }
   }
 
   clean(): void {
@@ -84,20 +98,20 @@ const nonceStore = new MemoryNonceStore();
 
 /**
  * Create LTI Provider with consumer credentials and nonce store
- * NOTE: We create provider per-request since consumer key/secret may vary
+ * NOTE: Provider constructor signature:
+ * new Provider(consumer_key, consumer_secret, nonceStore, signature_method)
  */
 function createProvider(consumerKey: string, consumerSecret: string): Provider {
-  // ims-lti Provider constructor signature:
-  // new Provider(consumerKey, consumerSecret, options, nonceStore)
+  // Import HMAC_SHA1 from ims-lti for signature method
+  const HMAC_SHA1 = require('ims-lti/lib/hmac-sha1');
+  const signatureMethod = new HMAC_SHA1();
+
+  // Correct argument order: consumer_key, consumer_secret, nonceStore, signature_method
   return new Provider(
     consumerKey,
     consumerSecret,
-    {
-      signature_method: 'HMAC-SHA1',
-      nonce: () => crypto.randomBytes(16).toString('base64'),
-      timestamp: () => Math.floor(Date.now() / 1000).toString()
-    },
-    nonceStore as any // Cast to any to bypass type checking for nonceStore
+    nonceStore,  // 3rd parameter
+    signatureMethod  // 4th parameter
   );
 }
 
@@ -381,6 +395,9 @@ export async function findOrCreateRoomForLtiContext(
 
     logger.error('Failed to create room for LTI context', {
       contextKey: context.contextKey,
+      errorMessage: error.message,
+      errorDetail: error.detail,
+      errorCode: error.code,
       error
     });
 
@@ -452,19 +469,32 @@ export async function findOrCreateUserByEmail(
       return existingResult.rows[0].id;
     }
 
+    // Parse name into first_name and last_name
+    const nameParts = (name || email.split('@')[0]).trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Generate username from email (must be unique)
+    const username = email.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
+
     // Create new user (student role)
     const insertResult = await pg.query(
-      `INSERT INTO users (email, name, role) VALUES ($1, $2, 'student')
+      `INSERT INTO users (moodle_user_id, username, email, first_name, last_name, role)
+      VALUES ($1, $2, $3, $4, $5, 'student')
       RETURNING id`,
       [
+        0, // moodle_user_id (use 0 for LTI users not linked to Moodle)
+        username,
         email,
-        name || email.split('@')[0] // Use email username if name not provided
+        firstName,
+        lastName
       ]
     );
 
     logger.info('Created new user for LTI launch', {
       userId: insertResult.rows[0].id,
-      email
+      email,
+      username
     });
 
     return insertResult.rows[0].id;
@@ -486,7 +516,8 @@ export async function findOrCreateUserByEmail(
 
     logger.error('Failed to create user for LTI launch', {
       email,
-      error
+      error: error.message,
+      detail: error.detail
     });
 
     return null;
