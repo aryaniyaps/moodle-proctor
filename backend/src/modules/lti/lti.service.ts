@@ -23,7 +23,7 @@ import {
 
 const OAUTH_TIMESTAMP_WINDOW = 300; // 5 minutes in seconds
 const DEFAULT_CONSUMER_KEY = process.env.LTI_CONSUMER_KEY || 'moodle';
-const DEFAULT_CONSUMER_SECRET = process.env.LTI_CONSUMER_SECRET || process.env.LTI_SECRET || 'secret';
+const DEFAULT_CONSUMER_SECRET = process.env.LTI_CONSUMER_SECRET || 'secret';
 
 // ============================================================================
 // Nonce Store (in-memory for OAuth 1.0)
